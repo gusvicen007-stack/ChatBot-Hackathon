@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  --color-ink-950: #0e1f38;
+  --color-ink-900: #172b4d;
+  --color-ink-700: #3d5372;
+  --color-ink-500: #6c82a4;
+  --color-ink-300: #aabcd6;
+  --color-ink-100: #e1edfa;
+  --color-ink-50: #f2f8ff;
+
+  --color-brand-700: #1595d1;
+  --color-brand-600: #1cb0f6;
+  --color-brand-500: #3ec1ff;
+  --color-brand-400: #7ad4ff;
+  --color-brand-100: #d9f1ff;
+
+  --color-coral-500: #ff5a5f;
+  --color-mint-500: #58cc02;
+  --color-amber-500: #ffc800;
+  --color-violet-500: #a560f7;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-50);
+  color: var(--color-ink-900);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.animate-float {
+  animation: float 3.4s ease-in-out infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle 1.8s ease-in-out infinite;
+}
+
+@keyframes sparkle-fast {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+
+.animate-sparkle-fast {
+  animation: sparkle-fast 0.55s ease-in-out infinite;
+}
+
+/*
+ * El parpadeo, la deriva de la mirada y la "respiración" del cuerpo ya NO
+ * viven en CSS: los calcula `src/mascot/engine.ts` frame a frame (función
+ * pura del tiempo, sin reloj interno) y un `requestAnimationFrame` en
+ * WizardMascot.tsx actualiza el SVG a mano. Solo queda en CSS lo que sigue
+ * siendo un loop puramente decorativo (alas, chispas, el rebote de
+ * celebración).
+ */
+
+@keyframes wing-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-5deg);
+  }
+}
+
+.animate-wing-sway {
+  animation: wing-sway 3.6s ease-in-out infinite;
+}
+
+/* Mascota: rebote de celebración para logros (registro completo, clase iniciada, acierto) —
+   el único "resorte" deliberado, igual que bloub reserva uno solo (el pop de notificación)
+   y no anima el resto con rebotes. */
+@keyframes mascot-celebrate {
+  0%,
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) scale(1.06) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(0) scale(1) rotate(3deg);
+  }
+  75% {
+    transform: translateY(-6px) scale(1.03) rotate(-2deg);
+  }
+}
+
+.animate-mascot-celebrate {
+  animation: mascot-celebrate 0.7s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes wing-flap-fast {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-18deg);
+  }
+}
+
+.animate-wing-flap-fast {
+  animation: wing-flap-fast 0.3s ease-in-out infinite;
+}
+
+.duo-btn {
+  box-shadow: 0 4px 0 0 var(--duo-shadow, var(--color-brand-700));
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease;
+}
+
+.duo-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 var(--duo-shadow, var(--color-brand-700));
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 120s linear infinite;
+}
+
+.starfield {
+  background-image:
+    radial-gradient(1.4px 1.4px at 10% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 30% 65%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 55% 15%, #fff, transparent),
+    radial-gradient(1px 1px at 70% 55%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 85% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 15% 85%, #fff, transparent),
+    radial-gradient(1px 1px at 45% 40%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 95% 30%, #fff, transparent);
+  background-repeat: repeat;
+  background-size: 260px 260px;
+}

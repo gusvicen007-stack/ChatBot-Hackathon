@@ -1,0 +1,216 @@
+import type { Topic } from '../types';
+
+// Temarios adaptados de programas reales: CEFR (inglés/francés vía Cambridge
+// English y DELF/DALF, español vía DELE/Instituto Cervantes, alemán vía
+// Goethe-Institut) y JLPT (japonés) — temas por nivel, no traducción literal.
+
+export const syllabus: Record<string, Record<string, Topic[]>> = {
+  en: {
+    A1: [
+      { id: 'en-a1-1', title: 'Presentarte y saludar', description: 'Saludos, nombres y datos personales' },
+      { id: 'en-a1-2', title: 'Tu familia y amigos', description: 'Vocabulario de familia y relaciones' },
+      { id: 'en-a1-3', title: 'Rutinas diarias', description: 'Hábitos, horarios y el verbo "to be"' },
+      { id: 'en-a1-4', title: 'Comida y bebida', description: 'Pedir en un restaurante, gustos y preferencias' },
+      { id: 'en-a1-5', title: 'Números, la hora y el clima', description: 'Cantidades, horarios y estados del tiempo' },
+      { id: 'en-a1-6', title: 'Lugares y direcciones', description: 'Preposiciones de lugar y cómo pedir direcciones' },
+    ],
+    A2: [
+      { id: 'en-a2-1', title: 'Contar experiencias pasadas', description: 'Pasado simple y anécdotas' },
+      { id: 'en-a2-2', title: 'Salud y el cuerpo', description: 'Síntomas, el doctor y consejos' },
+      { id: 'en-a2-3', title: 'Tiempo libre y hobbies', description: 'Actividades de ocio y frecuencia' },
+      { id: 'en-a2-4', title: 'Describir personas y lugares', description: 'Adjetivos y comparativos' },
+      { id: 'en-a2-5', title: 'Hacer planes', description: 'Futuro con "going to" y "will"' },
+      { id: 'en-a2-6', title: 'Ropa y compras', description: 'De compras, tallas y precios' },
+      { id: 'en-a2-7', title: 'Transporte público', description: 'Cómo moverte en una ciudad nueva' },
+    ],
+    B1: [
+      { id: 'en-b1-1', title: 'Trabajo y estudios', description: 'Entrevistas y vida académica' },
+      { id: 'en-b1-2', title: 'Experiencias de viaje', description: 'Narrar viajes con presente perfecto' },
+      { id: 'en-b1-3', title: 'Opinar y expresar sentimientos', description: 'Dar tu punto de vista con matices' },
+      { id: 'en-b1-4', title: 'Medio ambiente', description: 'Sostenibilidad y hábitos ecológicos' },
+      { id: 'en-b1-5', title: 'Tecnología en el día a día', description: 'Apps, redes y vida digital' },
+      { id: 'en-b1-6', title: 'Medios de comunicación y noticias', description: 'Resumir y comentar noticias' },
+      { id: 'en-b1-7', title: 'Cultura y tradiciones', description: 'Festividades y costumbres' },
+    ],
+    B2: [
+      { id: 'en-b2-1', title: 'Phrasal verbs en contexto de negocios', description: 'Lenguaje profesional cotidiano' },
+      { id: 'en-b2-2', title: 'Debatir temas sociales', description: 'Argumentar a favor y en contra' },
+      { id: 'en-b2-3', title: 'Presentaciones profesionales', description: 'Estructurar una presentación clara' },
+      { id: 'en-b2-4', title: 'Expresiones idiomáticas', description: 'Modismos de uso frecuente' },
+      { id: 'en-b2-5', title: 'Análisis de noticias y medios', description: 'Lectura crítica de artículos' },
+      { id: 'en-b2-6', title: 'Negociaciones y reuniones', description: 'Lenguaje para acuerdos y propuestas' },
+    ],
+    C1: [
+      { id: 'en-c1-1', title: 'Argumentación matizada', description: 'Defender ideas complejas con precisión' },
+      { id: 'en-c1-2', title: 'Retórica y persuasión', description: 'Técnicas de discurso avanzado' },
+      { id: 'en-c1-3', title: 'Literatura y análisis de textos', description: 'Interpretar textos literarios' },
+      { id: 'en-c1-4', title: 'Humor, ironía y matices culturales', description: 'Entender referencias sutiles' },
+      { id: 'en-c1-5', title: 'Redacción de ensayos avanzados', description: 'Estructura y cohesión académica' },
+    ],
+  },
+  fr: {
+    A1: [
+      { id: 'fr-a1-1', title: 'Entrer en contact', description: 'Presentarte y dar información personal' },
+      { id: 'fr-a1-2', title: 'La famille', description: 'Vocabulario familiar y posesivos' },
+      { id: 'fr-a1-3', title: "L'heure et les horaires", description: 'Decir la hora y hablar de horarios' },
+      { id: 'fr-a1-4', title: "L'alimentation", description: 'Comida, bebida y el restaurante' },
+      { id: 'fr-a1-5', title: 'Les vêtements', description: 'Ropa y compras básicas' },
+      { id: 'fr-a1-6', title: 'Compter et les nombres', description: 'Números y cantidades' },
+    ],
+    A2: [
+      { id: 'fr-a2-1', title: 'La ville', description: 'Ubicarte en el espacio y medios de transporte' },
+      { id: 'fr-a2-2', title: 'Les réseaux sociaux', description: 'Conversaciones telefónicas y redes' },
+      { id: 'fr-a2-3', title: 'Les voyages', description: 'Escribir postales y hablar del clima' },
+      { id: 'fr-a2-4', title: 'Faire les courses', description: 'Ir de compras y regatear' },
+      { id: 'fr-a2-5', title: 'Parler du passé récent', description: 'Passé composé en contexto cotidiano' },
+      { id: 'fr-a2-6', title: 'La météo et les saisons', description: 'El clima y las estaciones del año' },
+    ],
+    B1: [
+      { id: 'fr-b1-1', title: 'Situations de la vie quotidienne', description: 'Resolver imprevistos comunes' },
+      { id: 'fr-b1-2', title: 'Exprimer une opinion', description: 'Dar tu opinión con matices' },
+      { id: 'fr-b1-3', title: 'Raconter un voyage', description: 'Narrar experiencias de viaje' },
+      { id: 'fr-b1-4', title: 'La santé et le bien-être', description: 'Hablar de salud y bienestar' },
+      { id: 'fr-b1-5', title: 'Le monde du travail', description: 'Entrevistas y vida profesional' },
+      { id: 'fr-b1-6', title: 'Comprendre les infos', description: 'Resumir noticias sencillas' },
+    ],
+    B2: [
+      { id: 'fr-b2-1', title: 'Le subjonctif dans le débat', description: 'Usar el subjuntivo al argumentar' },
+      { id: 'fr-b2-2', title: 'Les clauses relatives', description: 'Conectar ideas con precisión' },
+      { id: 'fr-b2-3', title: 'Discuter des enjeux de société', description: 'Debatir temas sociales actuales' },
+      { id: 'fr-b2-4', title: "L'environnement et l'écologie", description: 'Sostenibilidad y ecología' },
+      { id: 'fr-b2-5', title: 'La culture française contemporaine', description: 'Cine, música y actualidad' },
+      { id: 'fr-b2-6', title: 'Rédiger une argumentation', description: 'Escribir textos argumentativos' },
+    ],
+    C1: [
+      { id: 'fr-c1-1', title: 'Nuances et registres de langue', description: 'Formal, informal y matices' },
+      { id: 'fr-c1-2', title: 'Analyse littéraire', description: 'Interpretar textos literarios' },
+      { id: 'fr-c1-3', title: 'Débats complexes', description: 'Argumentación de alto nivel' },
+      { id: 'fr-c1-4', title: 'Rédaction académique avancée', description: 'Ensayos y textos formales' },
+    ],
+  },
+  ja: {
+    N5: [
+      { id: 'ja-n5-1', title: 'あいさつ — Saludos', description: 'Saludos básicos y presentaciones' },
+      { id: 'ja-n5-2', title: '数字と時間 — Números y hora', description: 'Contar y decir la hora' },
+      { id: 'ja-n5-3', title: '家族 — Familia', description: 'Vocabulario de familia' },
+      { id: 'ja-n5-4', title: '食べ物 — Comida', description: 'Pedir comida y bebida' },
+      { id: 'ja-n5-5', title: '道案内 — Direcciones', description: 'Preguntar y dar direcciones' },
+      { id: 'ja-n5-6', title: '色と曜日 — Colores y días', description: 'Colores y días de la semana' },
+    ],
+    N4: [
+      { id: 'ja-n4-1', title: '毎日の生活 — Vida diaria', description: 'Rutinas y actividades cotidianas' },
+      { id: 'ja-n4-2', title: '学校生活 — Vida escolar', description: 'Vocabulario del entorno escolar' },
+      { id: 'ja-n4-3', title: '旅行 — Viajes', description: 'Planear y narrar un viaje' },
+      { id: 'ja-n4-4', title: '健康 — Salud', description: 'Síntomas y visitas al médico' },
+      { id: 'ja-n4-5', title: '買い物 — Compras', description: 'De compras y precios' },
+      { id: 'ja-n4-6', title: '趣味 — Pasatiempos', description: 'Hablar de tus hobbies' },
+    ],
+    N3: [
+      { id: 'ja-n3-1', title: '職場での会話 — Conversaciones de trabajo', description: 'Japonés en el entorno laboral' },
+      { id: 'ja-n3-2', title: '旅行の計画 — Planificar un viaje', description: 'Organizar itinerarios' },
+      { id: 'ja-n3-3', title: '日本文化 — Cultura japonesa', description: 'Tradiciones y costumbres' },
+      { id: 'ja-n3-4', title: '感情表現 — Expresar emociones', description: 'Matices al describir sentimientos' },
+      { id: 'ja-n3-5', title: 'ニュースの話題 — Temas de noticias', description: 'Comentar noticias sencillas' },
+    ],
+    N2: [
+      { id: 'ja-n2-1', title: '時事問題 — Actualidad', description: 'Discutir temas de actualidad' },
+      { id: 'ja-n2-2', title: 'ビジネス日本語 — Japonés de negocios', description: 'Reuniones y correos formales' },
+      { id: 'ja-n2-3', title: 'テクノロジー — Tecnología', description: 'Vocabulario tecnológico' },
+      { id: 'ja-n2-4', title: '社会問題を話し合う — Temas sociales', description: 'Debatir con argumentos' },
+      { id: 'ja-n2-5', title: 'メディアを理解する — Comprender los medios', description: 'Análisis de medios y prensa' },
+    ],
+    N1: [
+      { id: 'ja-n1-1', title: '学術的な内容 — Contenido académico', description: 'Textos y discurso académico' },
+      { id: 'ja-n1-2', title: 'ビジネス文書 — Documentos de negocios', description: 'Redacción formal avanzada' },
+      { id: 'ja-n1-3', title: '文学作品 — Obras literarias', description: 'Análisis literario' },
+      { id: 'ja-n1-4', title: '慣用句と言い回し — Modismos', description: 'Expresiones idiomáticas' },
+      { id: 'ja-n1-5', title: '文化的な参照 — Referencias culturales', description: 'Matices y referencias sutiles' },
+    ],
+  },
+  es: {
+    A1: [
+      { id: 'es-a1-1', title: 'Presentarte y datos personales', description: 'Saludos, nombres y nacionalidad' },
+      { id: 'es-a1-2', title: 'La familia', description: 'Vocabulario familiar y posesivos' },
+      { id: 'es-a1-3', title: 'Números y la hora', description: 'Contar y decir la hora' },
+      { id: 'es-a1-4', title: 'Comida y bebida', description: 'Pedir en un restaurante' },
+      { id: 'es-a1-5', title: 'La casa', description: 'Describir tu hogar y objetos' },
+      { id: 'es-a1-6', title: 'Ropa y compras', description: 'De compras y tallas' },
+    ],
+    A2: [
+      { id: 'es-a2-1', title: 'El barrio y direcciones', description: 'Ubicarte y pedir direcciones' },
+      { id: 'es-a2-2', title: 'Vida diaria y rutinas', description: 'Hábitos y horarios' },
+      { id: 'es-a2-3', title: 'De compras', description: 'Precios, tallas y negociar' },
+      { id: 'es-a2-4', title: 'Salud básica', description: 'Síntomas y el médico' },
+      { id: 'es-a2-5', title: 'El tiempo libre', description: 'Actividades de ocio y frecuencia' },
+      { id: 'es-a2-6', title: 'El clima y la geografía local', description: 'Describir el tiempo y el lugar' },
+    ],
+    B1: [
+      { id: 'es-b1-1', title: 'Contar experiencias y anécdotas', description: 'Narrar en pasado' },
+      { id: 'es-b1-2', title: 'Planes y proyectos futuros', description: 'Expresar planes e intenciones' },
+      { id: 'es-b1-3', title: 'Justificar opiniones', description: 'Dar tu punto de vista con matices' },
+      { id: 'es-b1-4', title: 'Viajes y turismo', description: 'Resolver situaciones de viaje' },
+      { id: 'es-b1-5', title: 'El mundo laboral', description: 'Entrevistas y vida profesional' },
+      { id: 'es-b1-6', title: 'Educación y estudios', description: 'Hablar de tu formación' },
+    ],
+    B2: [
+      { id: 'es-b2-1', title: 'Tecnología y redes sociales', description: 'Vida digital y nuevas tecnologías' },
+      { id: 'es-b2-2', title: 'Economía y empleo', description: 'Finanzas, trabajo y desempleo' },
+      { id: 'es-b2-3', title: 'Salud y bienestar', description: 'Cuerpo, mente y medicina' },
+      { id: 'es-b2-4', title: 'Arte y cine', description: 'Géneros, crítica y cultura' },
+      { id: 'es-b2-5', title: 'Medio ambiente y energías renovables', description: 'Sostenibilidad y ecología' },
+      { id: 'es-b2-6', title: 'Debatir temas de actualidad', description: 'Argumentar con fluidez' },
+    ],
+    C1: [
+      { id: 'es-c1-1', title: 'Matices culturales y registros', description: 'Formal, informal y coloquial' },
+      { id: 'es-c1-2', title: 'Análisis de textos periodísticos', description: 'Lectura crítica de prensa' },
+      { id: 'es-c1-3', title: 'Argumentación compleja', description: 'Debates de alto nivel' },
+      { id: 'es-c1-4', title: 'Literatura hispanoamericana', description: 'Interpretar textos literarios' },
+      { id: 'es-c1-5', title: 'Redacción académica avanzada', description: 'Ensayos y textos formales' },
+    ],
+  },
+  de: {
+    A1: [
+      { id: 'de-a1-1', title: 'Vorstellen — Presentarte', description: 'Saludos y datos personales' },
+      { id: 'de-a1-2', title: 'Zahlen und Tagesablauf — Números y rutina', description: 'Fechas, hora y rutina diaria' },
+      { id: 'de-a1-3', title: 'Familie und Hobbys — Familia y hobbies', description: 'Familia y tiempo libre' },
+      { id: 'de-a1-4', title: 'Einkaufen und Essen — Compras y comida', description: 'De compras y pedir comida' },
+      { id: 'de-a1-5', title: 'Wohnen und Reisen — Vivienda y viajes', description: 'Tu casa y medios de transporte' },
+      { id: 'de-a1-6', title: 'Gesundheit und Wetter — Salud y clima', description: 'Síntomas y el estado del tiempo' },
+    ],
+    A2: [
+      { id: 'de-a2-1', title: 'Persönliche Informationen — Info personal', description: 'Hablar de ti y tu familia' },
+      { id: 'de-a2-2', title: 'Einkaufssituationen — Situaciones de compra', description: 'Comprar y comparar precios' },
+      { id: 'de-a2-3', title: 'Die Stadt — El barrio y la ciudad', description: 'Ubicarte y moverte en la ciudad' },
+      { id: 'de-a2-4', title: 'Arbeit und Zeitplan — Rutinas de trabajo', description: 'Horarios y vida laboral' },
+      { id: 'de-a2-5', title: 'Reisepläne — Planes de viaje', description: 'Organizar un viaje' },
+      { id: 'de-a2-6', title: 'Am Telefon — Llamadas telefónicas', description: 'Comunicación telefónica sencilla' },
+    ],
+    B1: [
+      { id: 'de-b1-1', title: 'Arbeit, Schule, Freizeit — Trabajo y ocio', description: 'Vida laboral y escolar' },
+      { id: 'de-b1-2', title: 'Alltagsgespräche verstehen — Conversaciones cotidianas', description: 'Comprender diálogos claros' },
+      { id: 'de-b1-3', title: 'Vergangenes erzählen — Narrar el pasado', description: 'Contar experiencias pasadas' },
+      { id: 'de-b1-4', title: 'Meinungen äußern — Opiniones', description: 'Opinar sobre temas familiares' },
+      { id: 'de-b1-5', title: 'Reisen und Probleme lösen — Viajar', description: 'Resolver imprevistos de viaje' },
+      { id: 'de-b1-6', title: 'Formelle Korrespondenz — Correspondencia formal', description: 'Cartas y correos sencillos' },
+    ],
+    B2: [
+      { id: 'de-b2-1', title: 'Abstrakte Themen — Temas abstractos', description: 'Ideas concretas y abstractas' },
+      { id: 'de-b2-2', title: 'Diskutieren und argumentieren — Debatir', description: 'Argumentar con fluidez' },
+      { id: 'de-b2-3', title: 'Deutsche Medien — Medios de comunicación', description: 'Prensa y noticias alemanas' },
+      { id: 'de-b2-4', title: 'Arbeitswelt und Business — Mundo laboral', description: 'Negocios y vida profesional' },
+      { id: 'de-b2-5', title: 'Komplexe Texte — Textos complejos', description: 'Comprensión de textos técnicos' },
+      { id: 'de-b2-6', title: 'Klare Texte verfassen — Redacción clara', description: 'Escribir textos detallados' },
+    ],
+    C1: [
+      { id: 'de-c1-1', title: 'Sprachregister — Registro formal e informal', description: 'Matices de formalidad' },
+      { id: 'de-c1-2', title: 'Literatur und Essay — Literatura y ensayo', description: 'Interpretar textos literarios' },
+      { id: 'de-c1-3', title: 'Komplexe Debatten — Debates complejos', description: 'Persuasión y argumentación' },
+      { id: 'de-c1-4', title: 'Akademische Dokumente — Textos académicos', description: 'Documentos formales y profesionales' },
+      { id: 'de-c1-5', title: 'Deutsche Kultur — Cultura alemana', description: 'Sociedad y cultura contemporánea' },
+    ],
+  },
+};
+
+export function getTopics(languageId: string, levelCode: string): Topic[] {
+  return syllabus[languageId]?.[levelCode] ?? [];
+}
