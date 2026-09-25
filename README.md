@@ -1,32 +1,29 @@
-# React + TypeScript + Vite
+# Fluenta
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Tutor de idiomas por voz. Practicas conversación en inglés, francés, alemán o
+español con un tutor que te habla, **te espera mientras buscas la palabra**, y
+cambia a tu idioma cuando te atoras.
 
-Currently, two official plugins are available:
+Construido sobre el [Voice Agent API](https://www.assemblyai.com/docs/voice-agents/voice-agent-api)
+y el [LLM Gateway](https://www.assemblyai.com/docs/llm-gateway/quickstart) de AssemblyAI.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Lo que lo hace distinto
 
-## React Compiler
+- **Paciencia por nivel.** Un principiante hace pausas largas buscando la
+  palabra. El tutor le da a un A1 más del triple de silencio antes de
+  contestar que a un C1, para no cortarlo justo cuando iba a acertar.
+- **Ayuda en tu idioma.** Con un botón, el tutor cambia a la voz de tu idioma
+  nativo, te explica, y regresa a la clase donde iban.
+- **Retroalimentación que no inventa.** Al terminar, un reporte con tus
+  correcciones. Cada corrección cita algo que de verdad dijiste; el servidor
+  descarta las que no.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Correrlo
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+cp .env.example .env.local   # y pon tu ASSEMBLYAI_API_KEY
+npm run dev                  # http://localhost:3000
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Documentación técnica completa: [`docs/voz-y-backend.md`](docs/voz-y-backend.md).

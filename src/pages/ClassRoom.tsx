@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Mic } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Loader2, Languages } from 'lucide-react';
 import { getTutorReplies } from '../i18n/translations';
 import { useT } from '../i18n/I18nContext';
 import { useProfile } from '../ProfileContext';
 import type { ChatMessage } from '../types';
 import WizardMascot from '../components/WizardMascot';
+import { useVoiceAgent } from '../voice/useVoiceAgent';
+import { canSpeak } from '../voice/agentConfig';
 
 function now() {
   return new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
@@ -15,7 +17,7 @@ export default function ClassRoom() {
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { courses } = useProfile();
+  const { courses, profile } = useProfile();
   const { t, lang } = useT();
   const course = courses.find((c) => c.id === courseId) ?? courses[0];
   const topic = (location.state as { topic?: string } | null)?.topic ?? course?.nextTopic;
@@ -38,7 +40,34 @@ export default function ClassRoom() {
   const [celebrating, setCelebrating] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const replyIndex = useRef(0);
-  const headerState = isTyping ? 'thinking' : celebrating ? 'celebrate' : 'idle';
+  // course.id ES el id del idioma ('en', 'fr', 'de'...). El idioma nativo
+  // del alumno es el que eligio como idioma de interfaz al registrarse.
+  const targetLang = course?.id ?? 'en';
+  const nativeLang = profile?.uiLanguage ?? 'es';
+  const levelCode =
+    profile?.languages.find((l) => l.languageId === targetLang)?.levelCode ?? 'A2';
+  const speakable = canSpeak(targetLang);
+
+  const voice = useVoiceAgent({
+    targetLang,
+    nativeLang,
+    level: levelCode,
+    topic,
+    onTranscript: ({ role, text }) =>
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: role === 'tutor' ? 'tutor' : 'student', text, timestamp: now() },
+      ]),
+  });
+
+  const voiceOn = voice.state !== 'idle' && voice.state !== 'error';
+
+  const headerState =
+    voice.state === 'thinking' || isTyping
+      ? 'thinking'
+      : voice.state === 'speaking' || celebrating
+        ? 'celebrate'
+        : 'idle';
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,8 +139,20 @@ export default function ClassRoom() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-mint-500/10 px-3 py-1 text-xs font-semibold text-mint-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-mint-500" />
-          {t('classRoom.tutorOnline')}
+          <span
+            className={`h-1.5 w-1.5 rounded-full bg-mint-500 ${voiceOn ? 'animate-pulse' : ''}`}
+          />
+          {voice.error
+            ? voice.error
+            : voice.state === 'listening'
+              ? 'Te escucho…'
+              : voice.state === 'thinking'
+                ? 'Pensando…'
+                : voice.state === 'speaking'
+                  ? 'Hablando…'
+                  : voice.state === 'connecting'
+                    ? 'Conectando…'
+                    : t('classRoom.tutorOnline')}
         </div>
       </header>
 
@@ -142,11 +183,35 @@ export default function ClassRoom() {
         >
           <button
             type="button"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-ink-500 transition hover:bg-ink-50"
+            onClick={voiceOn ? voice.stop : voice.start}
+            disabled={!speakable || voice.state === 'connecting'}
+            title={speakable ? undefined : 'Este idioma todavía no tiene tutor de voz'}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition disabled:opacity-40 ${
+              voiceOn
+                ? 'bg-coral-500 text-white'
+                : 'text-ink-500 hover:bg-ink-50'
+            }`}
             aria-label={t('classRoom.micLabel')}
           >
-            <Mic size={18} />
+            {voice.state === 'connecting' ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : voiceOn ? (
+              <MicOff size={18} />
+            ) : (
+              <Mic size={18} />
+            )}
           </button>
+          {voiceOn && (
+            <button
+              type="button"
+              onClick={() => voice.rescue(voice.activeLang !== targetLang)}
+              className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-ink-500 transition hover:bg-ink-50"
+              title="Que te lo explique en tu idioma"
+            >
+              <Languages size={16} />
+              {voice.activeLang !== targetLang ? 'Volver' : 'Ayuda'}
+            </button>
+          )}
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
