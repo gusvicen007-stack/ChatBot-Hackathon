@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# secretos
+.env
+.env.local
+
+# paquetes para compartir
+*.zip
