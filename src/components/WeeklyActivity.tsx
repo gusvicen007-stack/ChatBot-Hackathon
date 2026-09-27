@@ -1,9 +1,11 @@
-import { weekActivityMinutes } from '../data/mockData';
 import { getWeekDays } from '../i18n/translations';
 import { useT } from '../i18n/I18nContext';
+import { useProgress } from '../ProgressContext';
 
 export default function WeeklyActivity() {
   const { t, lang } = useT();
+  const { progress } = useProgress();
+  const weekActivityMinutes = progress.weekMinutes;
   const days = getWeekDays(lang);
   const max = Math.max(...weekActivityMinutes, 30);
 

@@ -14,6 +14,7 @@
 const TOKEN_URL = 'https://agents.assemblyai.com/v1/token';
 const GATEWAY_URL = 'https://llm-gateway.assemblyai.com/v1/chat/completions';
 const SESSION_SECONDS = 300;
+const BAD_KEY = 'The AssemblyAI API key is invalid. Check ASSEMBLYAI_API_KEY in .env.local and restart the server.';
 
 // Las variables se leen en cada llamada, no al cargar el modulo: en desarrollo
 // Vite carga .env.local DESPUES de importar este archivo.
@@ -54,7 +55,7 @@ function checkBudget(ip) {
 
   const cap = num('DAILY_SESSION_CAP', 60);
   if (sessionsToday >= cap) {
-    throw new HttpError(429, 'El tutor ya alcanzó su límite de clases por hoy. Vuelve mañana.');
+    throw new HttpError(429, 'The tutor has reached its class limit for today. Come back tomorrow.');
   }
 
   const hour = 3_600_000;
@@ -64,7 +65,7 @@ function checkBudget(ip) {
   if (recent.length >= limit) {
     const waitMin = Math.ceil((hour - (now - recent[0])) / 60_000);
     perIp.set(ip, recent);
-    throw new HttpError(429, `Llegaste al límite de clases por hora. Intenta en ${waitMin} min.`);
+    throw new HttpError(429, `You reached the hourly class limit. Try again in ${waitMin} min.`);
   }
   recent.push(now);
   perIp.set(ip, recent);
@@ -74,7 +75,7 @@ function checkBudget(ip) {
 
 async function mintToken() {
   const key = env('ASSEMBLYAI_API_KEY');
-  if (!key) throw new HttpError(500, 'Falta ASSEMBLYAI_API_KEY en el servidor');
+  if (!key) throw new HttpError(500, 'ASSEMBLYAI_API_KEY is missing on the server');
 
   const url = new URL(TOKEN_URL);
   url.searchParams.set('expires_in_seconds', '120');
@@ -86,10 +87,14 @@ async function mintToken() {
   // la key cruda. No se generaliza entre productos.
   const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
   if (!res.ok) {
-    console.error('[token]', res.status, await res.text());
-    throw new HttpError(502, res.status === 401
-      ? 'La API key de AssemblyAI es inválida'
-      : 'AssemblyAI no respondió. Intenta de nuevo.');
+    const text = await res.text();
+    console.error('[token]', res.status, text);
+    // Con una key invalida el endpoint de voz responde 404 {"detail":"Invalid API key"},
+    // no 401: hay que mirar tambien el cuerpo.
+    const badKey = res.status === 401 || res.status === 403 || /invalid api key/i.test(text);
+    throw new HttpError(502, badKey
+      ? BAD_KEY
+      : 'AssemblyAI did not respond. Please try again.');
   }
   return (await res.json()).token;
 }
@@ -164,7 +169,7 @@ async function buildReport(body) {
   const { turns, target, native, level, topic } = validateReportInput(body);
 
   const key = env('ASSEMBLYAI_API_KEY');
-  if (!key) throw new HttpError(500, 'Falta ASSEMBLYAI_API_KEY en el servidor');
+  if (!key) throw new HttpError(500, 'ASSEMBLYAI_API_KEY is missing on the server');
   const dialogue = turns.map((t) => `${t.role === 'tutor' ? 'Tutor' : 'Student'}: ${t.text}`).join('\n');
 
   const system = [
@@ -208,7 +213,7 @@ async function buildReport(body) {
   console.log('[report]', res.status, 'model=', data.model, 'request_id=', data.request_id);
   if (!res.ok) {
     console.error('[report] error', JSON.stringify(data).slice(0, 500));
-    throw new HttpError(502, 'No se pudo generar el reporte. Intenta de nuevo.');
+    throw new HttpError(502, res.status === 401 ? BAD_KEY : 'No se pudo generar el reporte. Intenta de nuevo.');
   }
 
   let report;

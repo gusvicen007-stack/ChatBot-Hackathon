@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Mic, MicOff, Loader2, Languages } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Loader2, Languages, Flag, Flame, Zap, Clock } from 'lucide-react';
 import { getTutorReplies } from '../i18n/translations';
 import { useT } from '../i18n/I18nContext';
 import { useProfile } from '../ProfileContext';
+import { useProgress } from '../ProgressContext';
 import type { ChatMessage } from '../types';
 import WizardMascot from '../components/WizardMascot';
 import { useVoiceAgent } from '../voice/useVoiceAgent';
 import { canSpeak } from '../voice/agentConfig';
 
 function now() {
-  return new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  return new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function ClassRoom() {
@@ -20,7 +21,10 @@ export default function ClassRoom() {
   const { courses, profile } = useProfile();
   const { t, lang } = useT();
   const course = courses.find((c) => c.id === courseId) ?? courses[0];
-  const topic = (location.state as { topic?: string } | null)?.topic ?? course?.nextTopic;
+  const { progress, completeLesson } = useProgress();
+  const lessonState = location.state as { topic?: string; topicId?: string; levelCode?: string } | null;
+  const topic = lessonState?.topic ?? course?.nextTopic;
+  const topicId = lessonState?.topicId ?? course?.nextTopicId ?? null;
   const tutorReplies = getTutorReplies(lang);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -38,14 +42,19 @@ export default function ClassRoom() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
+  const [startedAt] = useState(() => Date.now());
+  const [result, setResult] = useState<{ xp: number; minutes: number } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const replyIndex = useRef(0);
   // course.id ES el id del idioma ('en', 'fr', 'de'...). El idioma nativo
   // del alumno es el que eligio como idioma de interfaz al registrarse.
   const targetLang = course?.id ?? 'en';
-  const nativeLang = profile?.uiLanguage ?? 'es';
+  const nativeLang = profile?.uiLanguage ?? 'en';
   const levelCode =
-    profile?.languages.find((l) => l.languageId === targetLang)?.levelCode ?? 'A2';
+    lessonState?.levelCode ??
+    course?.levelCode ??
+    profile?.languages.find((l) => l.languageId === targetLang)?.levelCode ??
+    'A2';
   const speakable = canSpeak(targetLang);
 
   const voice = useVoiceAgent({
@@ -101,6 +110,13 @@ export default function ClassRoom() {
     );
   };
 
+  const finishLesson = () => {
+    if (voiceOn) voice.stop();
+    const minutes = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
+    const xp = topicId ? completeLesson({ topicId, minutes }) : 0;
+    setResult({ xp, minutes });
+  };
+
   if (!course) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-ink-50 px-6 text-center">
@@ -122,7 +138,7 @@ export default function ClassRoom() {
       <header className="flex items-center justify-between border-b border-ink-100 bg-white px-6 py-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(`/class/${course.id}/syllabus`)}
             className="flex h-9 w-9 items-center justify-center rounded-full text-ink-500 transition hover:bg-ink-50 hover:text-ink-900"
             aria-label={t('classRoom.backToDashboard')}
           >
@@ -138,23 +154,43 @@ export default function ClassRoom() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-mint-500/10 px-3 py-1 text-xs font-semibold text-mint-500">
+        <div className="flex items-center gap-2">
+        <div className="hidden items-center gap-1.5 rounded-full bg-mint-500/10 px-3 py-1 text-xs font-semibold text-mint-500 sm:flex">
           <span
             className={`h-1.5 w-1.5 rounded-full bg-mint-500 ${voiceOn ? 'animate-pulse' : ''}`}
           />
           {voice.error
             ? voice.error
             : voice.state === 'listening'
-              ? 'Te escucho…'
+              ? t('voice.listening')
               : voice.state === 'thinking'
-                ? 'Pensando…'
+                ? t('voice.thinking')
                 : voice.state === 'speaking'
-                  ? 'Hablando…'
+                  ? t('voice.speaking')
                   : voice.state === 'connecting'
-                    ? 'Conectando…'
+                    ? t('voice.connecting')
                     : t('classRoom.tutorOnline')}
         </div>
+          <button
+            type="button"
+            onClick={finishLesson}
+            style={{ ['--duo-shadow' as string]: 'color-mix(in srgb, var(--color-mint-500) 72%, black)' }}
+            className="duo-btn flex items-center gap-1.5 rounded-xl bg-mint-500 px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-white"
+          >
+            <Flag size={14} />
+            {t('classRoom.finish')}
+          </button>
+        </div>
       </header>
+
+      {result && (
+        <LessonComplete
+          xp={result.xp}
+          minutes={result.minutes}
+          streakDays={progress.streakDays}
+          onContinue={() => navigate(`/class/${course.id}/syllabus`)}
+        />
+      )}
 
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4">
         <div className="flex-1 overflow-y-auto py-6">
@@ -185,7 +221,7 @@ export default function ClassRoom() {
             type="button"
             onClick={voiceOn ? voice.stop : voice.start}
             disabled={!speakable || voice.state === 'connecting'}
-            title={speakable ? undefined : 'Este idioma todavía no tiene tutor de voz'}
+            title={speakable ? undefined : t('classRoom.noVoice')}
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition disabled:opacity-40 ${
               voiceOn
                 ? 'bg-coral-500 text-white'
@@ -206,10 +242,10 @@ export default function ClassRoom() {
               type="button"
               onClick={() => voice.rescue(voice.activeLang !== targetLang)}
               className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-ink-500 transition hover:bg-ink-50"
-              title="Que te lo explique en tu idioma"
+              title={t('classRoom.helpTitle')}
             >
               <Languages size={16} />
-              {voice.activeLang !== targetLang ? 'Volver' : 'Ayuda'}
+              {voice.activeLang !== targetLang ? t('classRoom.helpBack') : t('classRoom.help')}
             </button>
           )}
           <input
@@ -266,6 +302,59 @@ function TypingBubble() {
         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-300 [animation-delay:-0.15s]" />
         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-300" />
       </div>
+    </div>
+  );
+}
+
+function LessonComplete({
+  xp,
+  minutes,
+  streakDays,
+  onContinue,
+}: {
+  xp: number;
+  minutes: number;
+  streakDays: number;
+  onContinue: () => void;
+}) {
+  const { t } = useT();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white px-6">
+      <div className="flex w-full max-w-sm flex-col items-center text-center">
+        <WizardMascot size={150} state="celebrate" />
+        <h2 className="mt-4 text-2xl font-extrabold text-amber-500">{t('classRoom.lessonComplete')}</h2>
+
+        <div className="mt-6 grid w-full grid-cols-3 gap-3">
+          <Stat color="var(--color-brand-600)" icon={<Zap size={18} fill="currentColor" />} label="XP" value={`+${xp}`} />
+          <Stat
+            color="var(--color-amber-500)"
+            icon={<Flame size={18} fill="currentColor" />}
+            label={t('classRoom.streakLabel')}
+            value={String(streakDays)}
+          />
+          <Stat color="var(--color-mint-500)" icon={<Clock size={18} />} label={t('classRoom.timeLabel')} value={`${minutes} min`} />
+        </div>
+
+        <button
+          type="button"
+          onClick={onContinue}
+          className="duo-btn mt-8 w-full rounded-2xl bg-brand-600 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white"
+        >
+          {t('classRoom.continue')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ color, icon, label, value }: { color: string; icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border-2" style={{ borderColor: color, background: color }}>
+      <p className="py-1 text-[11px] font-extrabold uppercase tracking-wide text-white">{label}</p>
+      <p className="flex items-center justify-center gap-1 rounded-t-xl bg-white py-2.5 text-base font-extrabold" style={{ color }}>
+        {icon}
+        {value}
+      </p>
     </div>
   );
 }

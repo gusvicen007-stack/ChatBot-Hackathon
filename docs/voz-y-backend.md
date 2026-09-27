@@ -41,6 +41,8 @@ Dos ideas clave:
 | `src/voice/useVoiceAgent.ts` | El hook de React: conecta, graba, reproduce, maneja estados | Lo **usas**; rara vez lo editas |
 | `src/voice/agentConfig.ts` | Voces por idioma, saludo, prompt del tutor, paciencia por nivel | Solo si cambias idiomas o el tono del tutor |
 | `src/voice/report.ts` | Función `requestReport()` y el tipo `LessonReport` | Lo **usas** para la pantalla de reporte |
+| `src/voice/onboarding.ts` | Registro por voz: entiende cada respuesta del usuario (idioma, nombre, intereses, idiomas, nivel) con diccionarios, sin LLM | Lo usa `VoiceSignup` |
+| `src/components/VoiceSignup.tsx` | Registro por voz: Sabio pregunta idioma de la app, nombre, intereses, idiomas y nivel | Sí, si cambias el registro |
 | `src/pages/ClassRoom.tsx` | La clase. Ya tiene el micrófono y el botón "Ayuda" conectados | **Sí, es tu pantalla principal** |
 | `public/pcm-worklet.js` | Captura el micrófono en el formato que pide AssemblyAI | No. Ver reglas |
 | `server/api.mjs` | Toda la API: `/api/token`, `/api/report`, `/api/health` | No |

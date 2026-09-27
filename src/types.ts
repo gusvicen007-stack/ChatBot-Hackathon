@@ -3,20 +3,14 @@ export interface Course {
   language: string;
   flag: string;
   level: string;
+  /** Nivel en el que va el alumno dentro del mapa (sube al completar un nivel). */
+  levelCode: string;
   progress: number;
   lessonsDone: number;
   lessonsTotal: number;
   color: string;
   nextTopic: string;
-}
-
-export interface Student {
-  name: string;
-  email: string;
-  streakDays: number;
-  xp: number;
-  weeklyGoalMinutes: number;
-  weeklyMinutesDone: number;
+  nextTopicId: string | null;
 }
 
 export interface ChatMessage {

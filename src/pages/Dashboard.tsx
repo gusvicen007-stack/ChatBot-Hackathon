@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import CourseCard from '../components/CourseCard';
 import WeeklyActivity from '../components/WeeklyActivity';
 import WizardMascot from '../components/WizardMascot';
-import { student } from '../data/mockData';
+import { useProgress } from '../ProgressContext';
 import { useProfile } from '../ProfileContext';
 import { useT } from '../i18n/I18nContext';
 
@@ -12,8 +12,10 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, courses } = useProfile();
   const { t } = useT();
+  const { progress } = useProgress();
+  const weeklyMinutesDone = progress.weekMinutes.reduce((a, b) => a + b, 0);
   const goalPct = Math.min(
-    Math.round((student.weeklyMinutesDone / student.weeklyGoalMinutes) * 100),
+    Math.round((weeklyMinutesDone / progress.weeklyGoalMinutes) * 100),
     100,
   );
 
@@ -23,7 +25,7 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-5xl px-6 py-8">
         <h1 className="text-2xl font-extrabold text-ink-950">
-          {t('dashboard.greeting', { name: profile?.name || student.name })}
+          {t('dashboard.greeting', { name: profile?.name ?? '' })}
         </h1>
         <p className="mt-1 text-sm text-ink-500">{t('dashboard.subtitle')}</p>
 
@@ -33,7 +35,7 @@ export default function Dashboard() {
               <Trophy size={18} />
             </div>
             <div>
-              <p className="text-lg font-bold text-ink-950">{student.xp.toLocaleString()} XP</p>
+              <p className="text-lg font-bold text-ink-950">{progress.xp.toLocaleString()} XP</p>
               <p className="text-xs text-ink-500">{t('dashboard.totalPoints')}</p>
             </div>
           </div>
@@ -45,8 +47,8 @@ export default function Dashboard() {
             <div>
               <p className="text-lg font-bold text-ink-950">
                 {t('dashboard.weeklyMinutes', {
-                  done: student.weeklyMinutesDone,
-                  goal: student.weeklyGoalMinutes,
+                  done: weeklyMinutesDone,
+                  goal: progress.weeklyGoalMinutes,
                 })}
               </p>
               <p className="text-xs text-ink-500">

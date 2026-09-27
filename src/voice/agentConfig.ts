@@ -6,6 +6,8 @@
  * transcribe perfecto pero no tiene voz, asi que no puede tener tutor hablado.
  */
 
+import { missingFields, type MissingField, type OnboardingKnown } from './onboarding';
+
 export const VOICE: Record<string, string | null> = {
   es: 'lola',      // acento peninsular, la unica voz en espanol
   en: 'alba',      // ingles estadounidense
@@ -75,6 +77,12 @@ export function patienceFor(level: string) {
 }
 
 export interface SessionOpts {
+  /** 'onboarding' = Sabio guía el registro en vez de dar clase. */
+  mode?: 'tutor' | 'onboarding';
+  /** Solo en onboarding: lo que ya sabemos del alumno, para no volver a preguntarlo. */
+  known?: OnboardingKnown;
+  /** Solo en onboarding: la sesión se abre porque se detectó/cambió el idioma. */
+  switched?: boolean;
   targetLang: string;
   nativeLang: string;
   level: string;
@@ -83,6 +91,138 @@ export interface SessionOpts {
   greet?: boolean;
   /** Habla en el idioma nativo del alumno (modo rescate). */
   rescue?: boolean;
+}
+
+/**
+ * Saludo inicial del registro. La app arranca en inglés: Sabio se presenta y
+ * pide elegir el idioma de la app (si contestan en otro idioma, se usa ese).
+ */
+const CHOOSE_GREETING: Record<string, string> = {
+  en: "Hi! I'm Sabio, and I'll help you create your account. Which language would you like to use the app in? English, Spanish, French, German or Japanese?",
+  es: '¡Hola! Soy Sabio y te ayudo a crear tu cuenta. ¿En qué idioma quieres usar la app? Inglés, español, francés, alemán o japonés.',
+  fr: "Bonjour ! Je suis Sabio et je t'aide à créer ton compte. Dans quelle langue veux-tu utiliser l'appli ? Anglais, espagnol, français, allemand ou japonais ?",
+  de: 'Hallo! Ich bin Sabio und helfe dir, dein Konto zu erstellen. In welcher Sprache möchtest du die App nutzen? Englisch, Spanisch, Französisch, Deutsch oder Japanisch?',
+};
+
+/** Frase de enlace al abrir la sesión en el idioma detectado, o al retomar tras una pausa. */
+const SWITCHED: Record<string, string> = {
+  es: '¡Perfecto, seguimos en español!',
+  en: "Perfect, let's continue in English!",
+  fr: 'Parfait, on continue en français !',
+  de: 'Perfekt, wir machen auf Deutsch weiter!',
+};
+const RESUMED: Record<string, string> = {
+  es: '¡Aquí estoy de nuevo!',
+  en: "I'm back!",
+  fr: 'Me revoilà !',
+  de: 'Da bin ich wieder!',
+};
+
+/** La siguiente pregunta del registro, para que el saludo ya la haga. */
+const NEXT_QUESTION: Record<string, Record<MissingField | 'done', string>> = {
+  es: {
+    app_language: '¿En qué idioma quieres usar la app?',
+    name: '¿Cómo te llamas?',
+    interests: '¿Qué te interesa? Por ejemplo viajes, música, cine, videojuegos o comida.',
+    languages: '¿Qué idiomas quieres aprender? Tengo inglés, francés, alemán, español y japonés.',
+    levels: '¿Qué nivel tienes: principiante, básico, intermedio, intermedio alto o avanzado?',
+    done: 'Ya tengo todo. Presiona el botón verde, Comenzar mi aventura.',
+  },
+  en: {
+    app_language: 'Which language do you want to use the app in?',
+    name: "What's your name?",
+    interests: 'What are you into? For example travel, music, movies, video games or food.',
+    languages: 'Which languages do you want to learn? I have English, French, German, Spanish and Japanese.',
+    levels: "What's your level: beginner, basic, intermediate, upper intermediate or advanced?",
+    done: 'I have everything. Press the green button, Start my adventure.',
+  },
+  fr: {
+    app_language: "Dans quelle langue veux-tu utiliser l'appli ?",
+    name: "Comment tu t'appelles ?",
+    interests: "Qu'est-ce qui t'intéresse ? Par exemple les voyages, la musique, le cinéma, les jeux vidéo ou la cuisine.",
+    languages: "Quelles langues veux-tu apprendre ? J'ai l'anglais, le français, l'allemand, l'espagnol et le japonais.",
+    levels: 'Quel est ton niveau : débutant, élémentaire, intermédiaire, avancé ou expert ?',
+    done: "J'ai tout. Appuie sur le bouton vert, Commencer mon aventure.",
+  },
+  de: {
+    app_language: 'In welcher Sprache möchtest du die App nutzen?',
+    name: 'Wie heißt du?',
+    interests: 'Was interessiert dich? Zum Beispiel Reisen, Musik, Filme, Videospiele oder Essen.',
+    languages: 'Welche Sprachen möchtest du lernen? Ich habe Englisch, Französisch, Deutsch, Spanisch und Japanisch.',
+    levels: 'Wie ist dein Niveau: Anfänger, Grundkenntnisse, Mittelstufe, obere Mittelstufe oder fortgeschritten?',
+    done: 'Ich habe alles. Drück den grünen Knopf, Mein Abenteuer beginnen.',
+  },
+};
+
+function onboardingGreeting(lang: string, known: OnboardingKnown | undefined, switched: boolean): string {
+  if (!known?.uiLanguage) return CHOOSE_GREETING[lang] ?? CHOOSE_GREETING.en;
+  const next = missingFields(known).find((f) => f !== 'app_language') ?? 'done';
+  const questions = NEXT_QUESTION[lang] ?? NEXT_QUESTION.en;
+  const lead = (switched ? SWITCHED : RESUMED)[lang] ?? '';
+  return `${lead} ${questions[next]}`.trim();
+}
+
+function describeKnown(k: OnboardingKnown | undefined): string {
+  if (!k) return 'Nothing yet.';
+  const lines = [
+    k.uiLanguage ? `- App language: ${NAME[k.uiLanguage] ?? k.uiLanguage}` : '',
+    k.name ? `- Name: ${k.name}` : '',
+    k.interestsAnswered ? `- Interests: ${k.interests?.length ? k.interests.join(', ') : 'none'}` : '',
+    ...(k.languages ?? []).map(
+      (l) => `- Wants to learn ${NAME[l.id] ?? l.id}${l.level ? `, level ${l.level}` : ' (level still unknown)'}`,
+    ),
+  ].filter(Boolean);
+  return lines.length ? lines.join('\n') : 'Nothing yet.';
+}
+
+const MISSING_LABEL: Record<MissingField, string> = {
+  app_language: 'the app language',
+  name: 'their first name',
+  interests: 'their interests',
+  languages: 'which languages they want to learn',
+  levels: 'their level in each chosen language that has no level yet',
+};
+
+/**
+ * El prompt del registro. La app lo vuelve a mandar (session.update) cada vez
+ * que entiende una respuesta, así Sabio siempre sabe qué ya está guardado y
+ * qué falta preguntar.
+ */
+export function onboardingPrompt(o: SessionOpts): string {
+  const lang = NAME[o.targetLang] ?? o.targetLang;
+  const detecting = !o.known?.uiLanguage;
+  const missing = missingFields(o.known ?? {});
+  return [
+    'You are Sabio, a friendly wizard owl who guides new users through signing up for Fluenta, a language-learning app.',
+    `Your voice speaks ${lang}. Speak ONLY ${lang}. This is spoken aloud: keep every reply under 25 words.`,
+    '',
+    detecting
+      ? [
+          'STEP 0 — APP LANGUAGE. You already greeted the user and asked which language they want to use the app in.',
+          'Wait for their answer. The app switches to that language automatically: do not ask anything else yet.',
+          '',
+        ].join('\n')
+      : '',
+    'Then collect, IN THIS ORDER, asking ONE thing per turn and waiting for the answer:',
+    '1. Their first name.',
+    '2. Their interests. Options: travel, business, music, film and series, video games, culture, food, sports, literature, technology. Several or none is fine.',
+    '3. Which languages they want to learn. Options: English, French, German, Spanish, Japanese. Italian is coming soon and cannot be chosen yet.',
+    '4. For EACH chosen language, their current level: beginner, basic, intermediate, upper intermediate or advanced.',
+    '',
+    'ALREADY SAVED by the app (never ask these again):',
+    describeKnown(o.known),
+    '',
+    missing.length
+      ? `STILL MISSING: ${missing.map((m) => MISSING_LABEL[m]).join('; ')}. Ask about the first one.`
+      : 'EVERYTHING IS SAVED. Give a one-sentence summary and tell them to press the green button on the screen. Do not ask anything else.',
+    '- Never say the green button is available while something is still missing.',
+    '- If they already answered something that is still listed as missing, the app did not catch it: ask it again briefly and clearly.',
+    '',
+    'RULES:',
+    '- Briefly acknowledge each answer using their words ("Great, travel and music!"), then ask the next item.',
+    '- If an answer is unclear or not one of the options, gently offer the options again.',
+    '- Do not teach, quiz or correct grammar. This is only the sign-up.',
+  ].filter(Boolean).join('\n');
 }
 
 function tutorPrompt(o: SessionOpts): string {
@@ -121,24 +261,35 @@ export function buildSession(o: SessionOpts) {
   const voice = VOICE[lang];
   if (!voice) throw new Error(`No hay voz disponible para "${lang}"`);
 
+  const onboarding = o.mode === 'onboarding';
   const pace = patienceFor(o.level);
+  const greeting = onboarding
+    ? onboardingGreeting(lang, o.known, Boolean(o.switched))
+    : GREETING[lang];
 
   return {
     type: 'session.update',
     session: {
-      system_prompt: tutorPrompt(o),
-      greeting: o.greet === false ? '' : (GREETING[lang] ?? ''),
+      system_prompt: onboarding ? onboardingPrompt(o) : tutorPrompt(o),
+      greeting: o.greet === false ? '' : (greeting ?? ''),
       input: {
         format: { encoding: 'audio/pcm', sample_rate: 24000 },
         // language_codes se OMITE a proposito: la deteccion automatica nos
         // deja ver en que idioma hablo el alumno, que es lo que dispara el
         // rescate cuando se pasa a su idioma nativo.
         turn_detection: {
-          vad_threshold: 0.3,
-          min_silence: pace.min,
-          max_silence: pace.max,
-          interrupt_response: true,
-          interruption_delay: 100,
+          // 0.5 es el default. Mas bajo (antes 0.3) captaba la propia voz del
+          // tutor por las bocinas y se interrumpia solo: se oia entrecortado.
+          vad_threshold: 0.5,
+          // En clase fijamos la paciencia por nivel. En el registro se deja que
+          // AssemblyAI la ajuste solo: fijarla desactiva su ritmo adaptativo y
+          // hacía que cada respuesta tardara de más.
+          ...(onboarding ? {} : { min_silence: pace.min, max_silence: pace.max }),
+          // En el registro no se permite interrumpir: con bocinas, el eco de la
+          // propia voz de Sabio lo cortaba al empezar y dejaba respuestas a medias.
+          interrupt_response: !onboarding,
+          // 500 ms = modo 'balanced': un "ajá" o un eco breve ya no corta al tutor.
+          interruption_delay: 500,
         },
       },
       output: {

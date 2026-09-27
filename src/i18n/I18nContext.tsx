@@ -11,7 +11,7 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const { profile } = useProfile();
-  const lang: UILang = isUILang(profile?.uiLanguage) ? profile.uiLanguage : 'es';
+  const lang: UILang = isUILang(profile?.uiLanguage) ? profile.uiLanguage : 'en';
 
   const value = useMemo<I18nContextValue>(
     () => ({

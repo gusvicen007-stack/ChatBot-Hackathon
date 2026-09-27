@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Mic } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useProfile } from '../ProfileContext';
 import { interestOptions, languageOptions, uiLanguageOptions } from '../data/languages';
 import { getLanguageName, getLocalizedLevels } from '../i18n/languageCatalog';
-import { getInterestLabel, translate, type UILang } from '../i18n/translations';
+import { getInterestLabel, isUILang, translate, type UILang } from '../i18n/translations';
 import WizardMascot from '../components/WizardMascot';
+import VoiceSignup from '../components/VoiceSignup';
+import type { ProfileUpdate } from '../voice/onboarding';
 
 const TOTAL_STEPS = 4;
 
@@ -15,18 +17,23 @@ export default function Onboarding() {
   const { saveProfile } = useProfile();
   const navigate = useNavigate();
 
+  // 'voice': Sabio pregunta todo conversando. 'manual': el asistente por pasos de siempre.
+  // Los dos modos escriben en el mismo estado, así que se puede cambiar a mitad del registro.
+  const [mode, setMode] = useState<'voice' | 'manual'>('voice');
   const [step, setStep] = useState(1);
   const [uiLanguage, setUiLanguage] = useState<UILang | null>(null);
   const [name, setName] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [languageIds, setLanguageIds] = useState<string[]>([]);
   const [levels, setLevels] = useState<Record<string, string>>({});
+  const [interestsAnswered, setInterestsAnswered] = useState(false);
   const [finishing, setFinishing] = useState(false);
 
   // Todavía no hay perfil guardado durante el registro, así que este `t` local
   // traduce con el idioma recién elegido en el paso 1 (no con useT(), que lee
   // del perfil y por eso mostraría español hasta terminar el registro).
-  const activeLang: UILang = uiLanguage ?? 'es';
+  // Hasta que el usuario elija, la app está en inglés.
+  const activeLang: UILang = uiLanguage ?? 'en';
   const t = (key: string, vars?: Record<string, string | number>) =>
     translate(activeLang, key, vars);
 
@@ -38,6 +45,7 @@ export default function Onboarding() {
   };
 
   const toggleInterest = (interest: string) => {
+    setInterestsAnswered(true);
     setInterests((prev) =>
       prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest],
     );
@@ -62,6 +70,41 @@ export default function Onboarding() {
     3: canContinueStep3,
   };
 
+  const voiceComplete =
+    canContinueStep1 && canContinueStep2 && interestsAnswered && canContinueStep3 && canFinish;
+
+  /** Aplica al formulario lo que Sabio guardó con sus tools durante la charla. */
+  const applyUpdate = (u: ProfileUpdate) => {
+    if (u.uiLanguage && isUILang(u.uiLanguage)) setUiLanguage(u.uiLanguage);
+    if (u.name) setName(u.name);
+    if (u.interestsAnswered) {
+      setInterests(u.interests ?? []);
+      setInterestsAnswered(true);
+    }
+    if (u.languages) {
+      const list = u.languages;
+      setLanguageIds(list.map((l) => l.id));
+      // Si aún no dijo el nivel de un idioma, se conserva el que ya tenía (p. ej. puesto a mano).
+      setLevels((prev) =>
+        Object.fromEntries(
+          list
+            .map((l) => [l.id, l.level ?? prev[l.id]] as const)
+            .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
+        ),
+      );
+    }
+  };
+
+  /** Pasa al formulario manual en el primer paso que falte. */
+  const switchToManual = () => {
+    setStep(!canContinueStep1 ? 1 : !canContinueStep2 ? 2 : !canContinueStep3 ? 3 : 4);
+    setMode('manual');
+  };
+
+  const voiceFilled = [canContinueStep1, canContinueStep2, interestsAnswered, canContinueStep3, voiceComplete]
+    .filter(Boolean).length;
+  const progressPct = mode === 'voice' ? (voiceFilled / 5) * 100 : (step / TOTAL_STEPS) * 100;
+
   const handleFinish = () => {
     saveProfile({
       name: name.trim(),
@@ -80,11 +123,38 @@ export default function Onboarding() {
         <div className="mb-8 h-2.5 w-full overflow-hidden rounded-full bg-white/60">
           <div
             className="h-full rounded-full bg-brand-600 transition-all duration-300"
-            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+            style={{ width: `${Math.max(progressPct, 4)}%` }}
           />
         </div>
 
+        {mode === 'voice' ? (
+          <div className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm">
+            <VoiceSignup
+              t={t}
+              lang={activeLang}
+              uiLanguage={uiLanguage}
+              name={name}
+              interests={interests}
+              interestsAnswered={interestsAnswered}
+              languageIds={languageIds}
+              levels={levels}
+              complete={voiceComplete}
+              finishing={finishing}
+              onUpdate={applyUpdate}
+              onFinish={handleFinish}
+              onManual={switchToManual}
+            />
+          </div>
+        ) : (
         <div className="rounded-3xl bg-white p-6 sm:p-8 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setMode('voice')}
+            className="mb-4 flex items-center gap-1.5 text-xs font-bold text-brand-600 transition hover:text-brand-700"
+          >
+            <Mic size={14} />
+            {t('onboarding.backToVoice')}
+          </button>
           <div className="mb-6 flex items-start gap-3">
             <WizardMascot size={76} className="shrink-0" state={finishing ? 'celebrate' : 'idle'} />
             <div className="mt-1 rounded-2xl rounded-tl-sm bg-ink-50 px-4 py-2.5 text-sm font-semibold text-ink-900">
@@ -278,6 +348,7 @@ export default function Onboarding() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
