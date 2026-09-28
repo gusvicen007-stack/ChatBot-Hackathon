@@ -36,6 +36,15 @@ const GREETING: Record<string, string> = {
   it: 'Ciao! Come stai oggi?',
 };
 
+/** Al retomar una clase: no vuelve a preguntar "¿cómo estás?". */
+const RESUME_GREETING: Record<string, string> = {
+  es: '\u00a1Sigamos donde \u00edbamos!',
+  en: "Let's pick up where we left off!",
+  fr: 'Reprenons o\u00f9 on en \u00e9tait !',
+  de: 'Machen wir weiter, wo wir aufgeh\u00f6rt haben!',
+  it: 'Riprendiamo da dove eravamo!',
+};
+
 /** Guia de registro por nivel. Cubre MCER y JLPT. */
 const LEVEL_GUIDE: Record<string, string> = {
   A1: 'Absolute beginner. Use only present tense and the 500 most common words. Sentences under 8 words. Speak slowly. One question at a time.',
@@ -91,6 +100,8 @@ export interface SessionOpts {
   greet?: boolean;
   /** Habla en el idioma nativo del alumno (modo rescate). */
   rescue?: boolean;
+  /** Retoma una clase ya empezada (tras pausa o límite de tiempo): saluda distinto. */
+  resume?: boolean;
 }
 
 /**
@@ -265,7 +276,9 @@ export function buildSession(o: SessionOpts) {
   const pace = patienceFor(o.level);
   const greeting = onboarding
     ? onboardingGreeting(lang, o.known, Boolean(o.switched))
-    : GREETING[lang];
+    : o.resume
+      ? RESUME_GREETING[lang]
+      : GREETING[lang];
 
   return {
     type: 'session.update',

@@ -1,0 +1,98 @@
+import { deck } from './types';
+
+export default deck(
+  {
+    greetings: [
+      ['Mucho gusto', 'expresión al conocer a alguien', 'Nice to meet you', 'Soy Ana, mucho gusto.'],
+      ['¿Qué tal?', '¿cómo estás? (informal)', "How's it going?", 'Hola, Luis, ¿qué tal?'],
+      ['Hasta luego', 'despedida', 'See you later', 'Me voy, ¡hasta luego!'],
+      ['Me llamo…', 'mi nombre es…', 'My name is…', 'Me llamo Carlos.'],
+      ['¿De dónde eres?', 'pregunta por el origen', 'Where are you from?', '¿De dónde eres? — Soy de Canadá.'],
+    ],
+    family: [
+      ['los padres', 'papá y mamá', 'parents', 'Mis padres viven en Sevilla.', '"Parientes" son otros familiares, no los padres.', 'Careful: "parientes" means relatives, not parents.'],
+      ['los hermanos', 'hermanos y hermanas', 'siblings / brothers', 'Tengo dos hermanos.'],
+      ['la abuela', 'madre de tu padre o madre', 'grandmother', 'Mi abuela cocina muy bien.'],
+      ['el primo / la prima', 'hijo/a de tus tíos', 'cousin', 'Mi prima vive en Chile.'],
+      ['llevarse bien', 'tener buena relación', 'to get along', 'Me llevo bien con mi hermano.'],
+    ],
+    food: [
+      ['Quisiera…', 'forma amable de pedir', "I'd like…", 'Quisiera un café, por favor.'],
+      ['La cuenta, por favor', 'para pagar', 'The check, please', 'Perdone, la cuenta, por favor.'],
+      ['tener hambre', 'querer comer', 'to be hungry', 'Tengo hambre, ¿comemos?', 'Se usa "tener": tengo hambre, tengo sed, tengo frío.', 'Spanish uses "tener" (to have): tengo hambre, tengo sed, tengo frío.'],
+      ['el desayuno', 'primera comida del día', 'breakfast', 'El desayuno es a las ocho.'],
+      ['¡Qué rico!', '¡está delicioso!', 'So tasty!', '¡Qué rico está este pastel!'],
+    ],
+    time: [
+      ['¿Qué hora es?', 'pregunta la hora', 'What time is it?', '¿Qué hora es? — Son las tres.', '"Es la una" para la 1:00; "son las…" para las demás.', 'Use "es la una" for 1:00 and "son las…" for every other hour.'],
+      ['y media', '30 minutos', 'half past', 'Son las siete y media.'],
+      ['el fin de semana', 'sábado y domingo', 'the weekend', '¿Qué haces el fin de semana?'],
+      ['Hace sol', 'el sol brilla', "It's sunny", 'Hoy hace sol y calor.', 'El clima usa "hacer": hace frío, hace calor, hace viento.', 'Weather uses "hacer": hace frío, hace calor, hace viento.'],
+      ['todos los días', 'diariamente', 'every day', 'Estudio español todos los días.'],
+    ],
+    city: [
+      ['girar a la izquierda / derecha', 'cambiar de dirección', 'turn left / right', 'Gira a la derecha en el semáforo.'],
+      ['todo recto', 'sin girar', 'straight ahead', 'Sigue todo recto dos cuadras.'],
+      ['al lado de', 'junto a', 'next to', 'El café está al lado del banco.'],
+      ['la parada de autobús', 'donde para el bus', 'bus stop', '¿Dónde está la parada de autobús?'],
+      ['el centro', 'zona principal de la ciudad', 'downtown', 'Nos vemos en el centro.'],
+    ],
+    shopping: [
+      ['¿Cuánto cuesta?', 'pregunta el precio', 'How much is it?', '¿Cuánto cuesta esta camisa?'],
+      ['probarse', 'ponerse ropa para ver cómo queda', 'to try on', '¿Me puedo probar estos zapatos?'],
+      ['la talla', 'tamaño de la ropa', 'size', '¿Tiene esta falda en talla M?'],
+      ['en oferta', 'más barato de lo normal', 'on sale', 'Estos pantalones están en oferta.'],
+      ['el recibo', 'comprobante de pago', 'receipt', 'Aquí tiene su recibo.'],
+    ],
+    health: [
+      ['Me duele la cabeza', 'tengo dolor de cabeza', 'I have a headache', 'Me duele la cabeza desde la mañana.', '"Doler" funciona como "gustar": me duele, me duelen los pies.', '"Doler" works like "gustar": me duele, me duelen los pies.'],
+      ['estar enfermo/a', 'no tener buena salud', 'to be sick', 'Estoy enfermo, me quedo en casa.'],
+      ['la cita', 'hora acordada', 'appointment', 'Tengo cita con el médico a las cinco.'],
+      ['el medicamento', 'medicina', 'medicine', 'Toma este medicamento dos veces al día.'],
+      ['¡Que te mejores!', 'deseo de recuperación', 'Get well soon!', '¡Que te mejores pronto!'],
+    ],
+    leisure: [
+      ['salir', 'ir fuera a divertirse', 'to go out', '¿Salimos esta noche?'],
+      ['el pasatiempo', 'actividad por diversión', 'hobby', 'Mi pasatiempo favorito es leer.'],
+      ['Me encanta…', 'me gusta mucho', 'I love…', 'Me encantan los videojuegos.', 'Como "gustar": me encanta (una cosa), me encantan (varias).', 'Like "gustar": me encanta (one thing), me encantan (several).'],
+      ['hacer ejercicio', 'entrenar', 'to work out', 'Hago ejercicio tres veces por semana.'],
+      ['la serie', 'programa de episodios', 'series', 'Estoy viendo una serie nueva.'],
+    ],
+    travel: [
+      ['la tarjeta de embarque', 'para subir al avión', 'boarding pass', 'Su tarjeta de embarque, por favor.'],
+      ['el equipaje', 'las maletas', 'luggage', 'Perdieron mi equipaje.'],
+      ['reservar', 'apartar con antelación', 'to book', 'Reservé un hotel cerca de la playa.'],
+      ['ida y vuelta', 'viaje de ida y regreso', 'round trip', 'Un billete de ida y vuelta, por favor.', 'En España "billete"; en Latinoamérica "boleto".', 'Spain says "billete"; Latin America says "boleto".'],
+      ['hacer turismo', 'visitar lugares', 'to go sightseeing', 'Hicimos turismo por Madrid.'],
+    ],
+    work: [
+      ['la reunión', 'encuentro de trabajo', 'meeting', 'La reunión empieza a las diez.'],
+      ['el / la compañero/a de trabajo', 'colega', 'coworker', 'Mis compañeros de trabajo son simpáticos.'],
+      ['postularse', 'solicitar un empleo', 'to apply (for a job)', 'Me postulé para un nuevo puesto.'],
+      ['la fecha límite', 'último día para algo', 'deadline', 'La fecha límite es el viernes.'],
+      ['el trabajo', 'empleo', 'work / job', 'Voy al trabajo en metro.'],
+    ],
+    feelings: [
+      ['Creo que…', 'opino que', 'I think that…', 'Creo que es una buena idea.'],
+      ['Estoy de acuerdo', 'pienso lo mismo', 'I agree', 'Estoy de acuerdo contigo.'],
+      ['emocionado/a', 'con entusiasmo', 'excited', '¡Estoy emocionada por el viaje!'],
+      ['enojado/a · enfadado/a', 'molesto', 'angry', 'Está enojado por el ruido.', '"Enfadado" en España, "enojado" en Latinoamérica.', '"Enfadado" in Spain, "enojado" in Latin America.'],
+      ['Depende', 'no siempre es igual', 'It depends', '¿Te gusta? — Depende.'],
+    ],
+    discourse: [
+      ['Sin embargo', 'contraste', 'However', 'Es caro. Sin embargo, vale la pena.'],
+      ['Por otro lado', 'otro punto de vista', 'On the other hand', 'Por otro lado, ahorra tiempo.'],
+      ['Por lo tanto', 'consecuencia', 'Therefore', 'Llueve; por lo tanto, me quedo.'],
+      ['En mi opinión', 'lo que pienso', 'In my opinion', 'En mi opinión, tiene razón.'],
+      ['Aunque', 'a pesar de que', 'Although', 'Aunque estoy cansado, sigo estudiando.'],
+    ],
+  },
+  [
+    ['Ser y estar', 'Ser vs. estar', '"Ser" para lo que algo es (soy alto); "estar" para estados y lugares (estoy cansado, estoy en casa).', '"Ser" for identity and traits (soy alto); "estar" for states and location (estoy cansado).'],
+    ['Género', 'Gender', 'Casi todo termina en -o (masculino) o -a (femenino), con excepciones: el día, la mano.', 'Most nouns ending in -o are masculine and -a feminine, with exceptions: el día, la mano.'],
+    ['La r y la rr', 'R and RR', 'La "rr" (y la "r" inicial) vibra varias veces: perro, rojo. Entre vocales, "r" suave: pero.', '"rr" and initial "r" are trilled: perro, rojo. A single "r" between vowels is a tap: pero.'],
+    ['Por y para', 'Por vs. para', '"Para" = destino o finalidad (para ti); "por" = causa o medio (gracias por todo, por teléfono).', '"Para" = purpose or recipient; "por" = cause or means (por teléfono).'],
+    ['Las tildes importan', 'Accents matter', 'Cambian el significado: tú (you) / tu (your), sí (yes) / si (if), él (he) / el (the).', 'They change meaning: tú / tu, sí / si, él / el.'],
+    ['El sujeto se omite', 'Drop the subject', 'El verbo ya dice quién: hablo = yo hablo. Usar "yo" siempre suena forzado.', 'The verb shows who: hablo = I speak. Adding "yo" every time sounds unnatural.'],
+  ],
+);

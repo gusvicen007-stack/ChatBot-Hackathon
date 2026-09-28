@@ -1,0 +1,98 @@
+import { deck } from './types';
+
+export default deck(
+  {
+    greetings: [
+      ['Nice to meet you', 'Mucho gusto', 'said when you meet someone for the first time', "Hi, I'm Ana. Nice to meet you!"],
+      ["How's it going?", '¿Qué tal?', 'casual way to ask how someone is', "Hey Tom, how's it going?"],
+      ['See you later', 'Hasta luego', 'goodbye when you expect to meet again', 'I have to go now. See you later!'],
+      ['Where are you from?', '¿De dónde eres?', "asking about someone's origin", "Where are you from? — I'm from Mexico."],
+      ["I'm doing well, thanks", 'Estoy bien, gracias', 'common reply to "How are you?"', "I'm doing well, thanks. And you?"],
+    ],
+    family: [
+      ['parents', 'padres (papá y mamá)', 'mother and father', 'My parents live in Madrid.', 'Falso amigo: "parents" no son "parientes" (eso es relatives).', 'For Spanish speakers: "parientes" means relatives, not parents.'],
+      ['siblings', 'hermanos (en general)', 'brothers and sisters', 'I have two siblings.'],
+      ['grandmother', 'abuela', "your parent's mother", 'My grandmother makes great cookies.'],
+      ['cousin', 'primo / prima', "your aunt's or uncle's child", 'My cousin is visiting this weekend.'],
+      ['to get along with', 'llevarse bien con', 'to have a good relationship with', 'I get along with my brother.'],
+    ],
+    food: [
+      ["I'd like…", 'Quisiera… / Me gustaría…', 'polite way to order', "I'd like a coffee, please."],
+      ['the check / the bill', 'la cuenta', 'what you pay at a restaurant', 'Could we have the check, please?', 'EE. UU. dice "check"; Reino Unido, "bill".', 'US: check · UK: bill.'],
+      ['to be hungry', 'tener hambre', 'to want to eat', "I'm hungry. Let's eat!", 'En inglés se "es" hambriento: I am hungry (nunca "I have hunger").', 'English uses "be": I am hungry.'],
+      ['breakfast', 'desayuno', 'the first meal of the day', 'I have breakfast at eight.'],
+      ['delicious', 'delicioso', 'very tasty', 'This soup is delicious!'],
+    ],
+    time: [
+      ['What time is it?', '¿Qué hora es?', 'asking the time', "What time is it? — It's half past three."],
+      ['half past', 'y media', '30 minutes after the hour', "It's half past seven."],
+      ['weekend', 'fin de semana', 'Saturday and Sunday', 'What are you doing this weekend?'],
+      ["It's sunny", 'Hace sol', 'the sun is shining', "It's sunny today, let's go out."],
+      ['every day', 'todos los días', 'daily', 'I walk to work every day.', 'Junto ("everyday") es adjetivo: everyday life.', 'As one word, "everyday" is an adjective: everyday life.'],
+    ],
+    city: [
+      ['turn left / right', 'gira a la izquierda / derecha', 'change direction', 'Turn left at the bank.'],
+      ['straight ahead', 'todo recto', 'forward without turning', 'Go straight ahead for two blocks.'],
+      ['next to', 'al lado de', 'beside', 'The café is next to the station.'],
+      ['bus stop', 'parada de autobús', 'where the bus stops', "Where's the nearest bus stop?"],
+      ['downtown', 'el centro', 'the city center (US)', "Let's meet downtown."],
+    ],
+    shopping: [
+      ['How much is it?', '¿Cuánto cuesta?', 'asking the price', 'How much is this jacket?'],
+      ['to try on', 'probarse (ropa)', 'to put clothes on to see if they fit', 'Can I try on these shoes?'],
+      ['size', 'talla', 'how big clothes are', 'Do you have this in a medium?'],
+      ['on sale', 'en oferta / rebajado', 'cheaper than usual', 'These jeans are on sale.'],
+      ['receipt', 'recibo / ticket', 'paper that proves you paid', "Here's your receipt.", 'La "p" no se pronuncia: /riˈsiːt/.', 'The "p" is silent: /riˈsiːt/.'],
+    ],
+    health: [
+      ['I have a headache', 'Me duele la cabeza', 'pain in your head', 'I have a headache, I need to rest.'],
+      ['to feel sick', 'sentirse mal', 'to feel unwell', 'I feel sick after that meal.'],
+      ['appointment', 'cita (médica)', 'an arranged time to see someone', "I have a doctor's appointment at five."],
+      ['to take medicine', 'tomar medicina', 'to use a drug to get better', 'Take this medicine twice a day.'],
+      ['Get well soon!', '¡Que te mejores!', 'wish for someone to recover', 'Get well soon! See you on Monday.'],
+    ],
+    leisure: [
+      ['to hang out', 'pasar el rato / salir', 'to spend time casually', 'We hang out at the park on Sundays.'],
+      ['hobby', 'pasatiempo', 'an activity you do for fun', 'My favorite hobby is painting.'],
+      ["I'm into…", 'Me encanta… / Me gusta mucho…', 'I really like', "I'm into video games."],
+      ['to work out', 'hacer ejercicio', 'to exercise', 'I work out three times a week.'],
+      ['to binge-watch', 'ver series en maratón', 'to watch many episodes in a row', 'I binge-watched the whole series.'],
+    ],
+    travel: [
+      ['boarding pass', 'tarjeta de embarque', 'the ticket to get on a plane', 'Please show your boarding pass.'],
+      ['luggage', 'equipaje', 'the bags you take on a trip', 'My luggage is lost.', '"Luggage" es incontable: nunca "luggages".', '"Luggage" is uncountable: never "luggages".'],
+      ['to book', 'reservar', 'to reserve', 'I booked a hotel near the beach.'],
+      ['round trip', 'ida y vuelta', 'going and coming back', 'A round-trip ticket, please.'],
+      ['sightseeing', 'hacer turismo', 'visiting famous places', 'We went sightseeing in London.'],
+    ],
+    work: [
+      ['meeting', 'reunión', 'people get together to discuss', 'The meeting starts at ten.'],
+      ['deadline', 'fecha límite', 'the last moment to finish something', 'The deadline is Friday.'],
+      ['to apply for', 'postularse / solicitar', 'to formally ask for a job', 'I applied for a new job.'],
+      ['coworker', 'compañero/a de trabajo', 'a person you work with', 'My coworkers are very friendly.'],
+      ['to follow up', 'dar seguimiento', 'to continue after a first contact', "I'll follow up by email."],
+    ],
+    feelings: [
+      ['I think that…', 'Creo que…', 'to give an opinion', 'I think that learning languages is fun.'],
+      ['excited', 'emocionado/a, entusiasmado/a', 'happy and enthusiastic', "I'm excited about the trip!", 'Falso amigo: "excited" no es "excitado".', 'For Spanish speakers: "excited" is not "excitado".'],
+      ['upset', 'molesto / disgustado', 'unhappy or annoyed', 'She was upset about the news.'],
+      ['I agree / I disagree', 'Estoy / No estoy de acuerdo', 'to share or not share an opinion', 'I agree with you.', 'Nunca digas "I am agree".', 'Never say "I am agree".'],
+      ['It depends', 'Depende', 'the answer changes with the situation', 'Do you like it? — It depends.'],
+    ],
+    discourse: [
+      ['However', 'Sin embargo', 'introduces a contrast', "It's expensive. However, it's worth it."],
+      ['On the other hand', 'Por otro lado', 'presents another side', 'On the other hand, it saves time.'],
+      ['As a result', 'Como resultado', 'introduces a consequence', 'It rained. As a result, the game was cancelled.'],
+      ['To be honest', 'La verdad / Siendo sincero', 'introduces a sincere opinion', "To be honest, I didn't like the movie."],
+      ['Nevertheless', 'No obstante', 'formal contrast', 'The plan is risky; nevertheless, we will try.'],
+    ],
+  },
+  [
+    ['El sonido "th"', 'The "th" sound', 'Pon la lengua entre los dientes: think, this. No es "t" ni "d".', 'Put your tongue between your teeth: think, this.'],
+    ['La "-s" de he/she/it', 'The "-s" for he/she/it', 'En presente, he/she/it lleva -s: she works, he goes.', 'In the present simple, he/she/it takes -s: she works, he goes.'],
+    ['Preguntas con do / does', 'Questions with do / does', 'Para preguntar usa do/does: Do you like it? Does she live here?', 'Use do/does to ask: Do you like it? Does she live here?'],
+    ['Adjetivos sin plural', 'Adjectives have no plural', 'El adjetivo va antes y no cambia: a red car, two red cars.', 'Adjectives go first and never change: a red car, two red cars.'],
+    ['Falsos amigos', 'False friends', 'actually = en realidad · embarrassed = avergonzado · library = biblioteca.', 'Watch out for words that look like your language but mean something else.'],
+    ['Phrasal verbs', 'Phrasal verbs', 'Aprende el verbo junto con su partícula: get up (levantarse), give up (rendirse).', 'Learn the verb with its particle: get up, give up, look for.'],
+  ],
+);

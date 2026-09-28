@@ -1,0 +1,98 @@
+import { deck } from './types';
+
+export default deck(
+  {
+    greetings: [
+      ['Freut mich', 'Mucho gusto', 'Nice to meet you', 'Ich bin Anna. Freut mich!'],
+      ["Wie geht's?", '¿Qué tal?', "How's it going?", "Hallo Max, wie geht's?"],
+      ['Bis später', 'Hasta luego', 'See you later', 'Ich muss los. Bis später!'],
+      ['Ich heiße…', 'Me llamo…', 'My name is…', 'Ich heiße Lukas.', '"ß" suena como una "s" fuerte: heißen = "haisen".', '"ß" sounds like a sharp "s": heißen = "high-sen".'],
+      ['Woher kommst du?', '¿De dónde eres?', 'Where are you from?', 'Woher kommst du? — Ich komme aus Mexiko.'],
+    ],
+    family: [
+      ['die Eltern', 'los padres', 'parents', 'Meine Eltern wohnen in Berlin.'],
+      ['die Geschwister', 'los hermanos (en general)', 'siblings', 'Ich habe zwei Geschwister.'],
+      ['die Oma / die Großmutter', 'la abuela', 'grandma / grandmother', 'Meine Oma backt gern Kuchen.'],
+      ['der Cousin / die Cousine', 'el primo / la prima', 'cousin', 'Meine Cousine wohnt in Wien.'],
+      ['sich gut verstehen mit', 'llevarse bien con', 'to get along with', 'Ich verstehe mich gut mit meinem Bruder.'],
+    ],
+    food: [
+      ['Ich hätte gern…', 'Quisiera…', "I'd like…", 'Ich hätte gern einen Kaffee, bitte.'],
+      ['Die Rechnung, bitte', 'La cuenta, por favor', 'The check, please', 'Entschuldigung, die Rechnung, bitte!'],
+      ['Hunger haben', 'tener hambre', 'to be hungry', 'Ich habe Hunger. Essen wir?'],
+      ['das Frühstück', 'el desayuno', 'breakfast', 'Das Frühstück ist um acht.'],
+      ['lecker', 'rico / delicioso', 'tasty', 'Die Suppe ist lecker!'],
+    ],
+    time: [
+      ['Wie spät ist es?', '¿Qué hora es?', 'What time is it?', 'Wie spät ist es? — Es ist drei Uhr.'],
+      ['halb vier', 'las tres y media', 'half past three', 'Es ist halb vier.', '¡Ojo! "halb vier" = 3:30, media hora ANTES de las cuatro.', 'Careful: "halb vier" = 3:30, half an hour BEFORE four.'],
+      ['das Wochenende', 'el fin de semana', 'the weekend', 'Was machst du am Wochenende?'],
+      ['Das Wetter ist schön', 'Hace buen tiempo', 'The weather is nice', 'Heute ist das Wetter schön.'],
+      ['jeden Tag', 'todos los días', 'every day', 'Ich lerne jeden Tag Deutsch.'],
+    ],
+    city: [
+      ['links / rechts abbiegen', 'girar a la izquierda / derecha', 'turn left / right', 'Biegen Sie an der Bank links ab.'],
+      ['geradeaus', 'todo recto', 'straight ahead', 'Gehen Sie geradeaus.'],
+      ['neben', 'al lado de', 'next to', 'Das Café ist neben dem Bahnhof.'],
+      ['die Bushaltestelle', 'la parada de autobús', 'bus stop', 'Wo ist die Bushaltestelle?', 'Palabra compuesta: Bus + Halt (parada) + Stelle (lugar).', 'Compound word: Bus + Halt (stop) + Stelle (place).'],
+      ['die Innenstadt', 'el centro', 'downtown', 'Wir treffen uns in der Innenstadt.'],
+    ],
+    shopping: [
+      ['Wie viel kostet das?', '¿Cuánto cuesta?', 'How much is it?', 'Wie viel kostet die Jacke?'],
+      ['anprobieren', 'probarse', 'to try on', 'Kann ich die Schuhe anprobieren?'],
+      ['die Größe', 'la talla', 'size', 'Haben Sie das in Größe M?'],
+      ['im Angebot', 'en oferta', 'on sale', 'Die Hose ist im Angebot.'],
+      ['der Kassenbon', 'el ticket de compra', 'receipt', 'Hier ist Ihr Kassenbon.'],
+    ],
+    health: [
+      ['Ich habe Kopfschmerzen', 'Me duele la cabeza', 'I have a headache', 'Ich habe seit heute Morgen Kopfschmerzen.'],
+      ['krank sein', 'estar enfermo/a', 'to be sick', 'Ich bin krank und bleibe zu Hause.'],
+      ['der Termin', 'la cita', 'appointment', 'Ich habe einen Termin beim Arzt.'],
+      ['das Medikament', 'el medicamento', 'medicine', 'Nehmen Sie das Medikament zweimal täglich.'],
+      ['Gute Besserung!', '¡Que te mejores!', 'Get well soon!', 'Gute Besserung, bis bald!'],
+    ],
+    leisure: [
+      ['ausgehen', 'salir', 'to go out', 'Gehen wir heute Abend aus?', 'Verbo separable: "aus" se va al final → wir gehen heute aus.', 'Separable verb: "aus" moves to the end → wir gehen heute aus.'],
+      ['das Hobby', 'el pasatiempo', 'hobby', 'Mein Hobby ist Fotografieren.'],
+      ['Ich mag…', 'Me gusta…', 'I like…', 'Ich mag Videospiele.'],
+      ['Sport machen', 'hacer deporte', 'to do sports', 'Ich mache dreimal pro Woche Sport.'],
+      ['die Serie', 'la serie', 'series', 'Ich schaue eine spannende Serie.'],
+    ],
+    travel: [
+      ['die Bordkarte', 'la tarjeta de embarque', 'boarding pass', 'Ihre Bordkarte, bitte.'],
+      ['das Gepäck', 'el equipaje', 'luggage', 'Mein Gepäck ist verloren gegangen.'],
+      ['buchen', 'reservar', 'to book', 'Ich habe ein Hotel am Strand gebucht.'],
+      ['hin und zurück', 'ida y vuelta', 'round trip', 'Einmal nach München, hin und zurück, bitte.'],
+      ['besichtigen', 'visitar (un lugar)', 'to visit / see (a place)', 'Wir besichtigen das Schloss.'],
+    ],
+    work: [
+      ['die Besprechung', 'la reunión', 'meeting', 'Die Besprechung beginnt um zehn.'],
+      ['der Kollege / die Kollegin', 'el / la colega', 'coworker', 'Meine Kollegen sind sehr nett.'],
+      ['sich bewerben', 'postularse', 'to apply (for a job)', 'Ich bewerbe mich um eine neue Stelle.'],
+      ['die Frist', 'el plazo', 'deadline', 'Die Frist endet am Freitag.'],
+      ['die Arbeit', 'el trabajo', 'work', 'Ich fahre mit dem Rad zur Arbeit.'],
+    ],
+    feelings: [
+      ['Ich finde, dass…', 'Me parece que…', 'I think that…', 'Ich finde, dass das eine gute Idee ist.', 'Después de "dass" el verbo va al final.', 'After "dass", the verb goes to the end.'],
+      ['Ich bin einverstanden', 'Estoy de acuerdo', 'I agree', 'Ich bin mit dir einverstanden.'],
+      ['froh', 'contento/a', 'glad', 'Ich bin froh, dich zu sehen!'],
+      ['sauer', 'enojado/a', 'annoyed, angry', 'Er ist sauer wegen des Lärms.', 'Literalmente "agrio"; coloquialmente, enojado.', 'Literally "sour"; colloquially, angry.'],
+      ['Es kommt darauf an', 'Depende', 'It depends', 'Magst du das? — Es kommt darauf an.'],
+    ],
+    discourse: [
+      ['aber', 'pero', 'but', 'Es ist teuer, aber gut.'],
+      ['jedoch', 'sin embargo', 'however', 'Der Plan ist gut, jedoch riskant.'],
+      ['deshalb', 'por eso', 'therefore', 'Es regnet, deshalb bleibe ich zu Hause.', 'Tras "deshalb" el verbo va segundo: deshalb bleibe ich.', 'After "deshalb" the verb comes second: deshalb bleibe ich.'],
+      ['meiner Meinung nach', 'en mi opinión', 'in my opinion', 'Meiner Meinung nach hat er recht.'],
+      ['einerseits … andererseits', 'por un lado … por otro', 'on the one hand … on the other', 'Einerseits ist es praktisch, andererseits teuer.'],
+    ],
+  },
+  [
+    ['Sustantivos con mayúscula', 'Nouns are capitalized', 'Todos los sustantivos empiezan con mayúscula: der Hund, die Stadt, das Buch.', 'Every noun starts with a capital letter: der Hund, die Stadt.'],
+    ['der, die, das', 'der, die, das', 'Aprende cada palabra con su artículo; el género no se deduce del español.', 'Learn every noun with its article; gender is not predictable.'],
+    ['El verbo en segunda posición', 'Verb in second position', 'En la oración principal el verbo va segundo: Heute gehe ich ins Kino.', 'In main clauses the verb comes second: Heute gehe ich ins Kino.'],
+    ['Umlauts ä, ö, ü', 'Umlauts ä, ö, ü', 'Cambian el sonido y el significado: schon (ya) ≠ schön (bonito).', 'They change sound and meaning: schon (already) ≠ schön (beautiful).'],
+    ['du y Sie', 'du and Sie', '"du" con amigos y familia; "Sie" (con mayúscula) con desconocidos y en el trabajo.', '"du" with friends and family; "Sie" with strangers and at work.'],
+    ['Palabras compuestas', 'Compound words', 'Se unen palabras; la última define el género: das Haus + die Tür = die Haustür.', 'Words join together; the last one sets the gender: die Haustür.'],
+  ],
+);

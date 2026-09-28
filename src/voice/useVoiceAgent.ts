@@ -61,6 +61,10 @@ export function useVoiceAgent(opts: Options) {
   const sources = useRef(new Set<AudioBufferSourceNode>());
   const busy = useRef(false);            // evita dobles arranques (StrictMode)
   const history = useRef<VoiceTranscript[]>([]);
+  /** El usuario colgó a propósito: al cerrarse el socket no hay que avisar nada. */
+  const stopping = useRef(false);
+  /** La sesión terminó sola (límite de 5 min del servidor). Se avisa en pantalla. */
+  const [ended, setEnded] = useState(false);
   const optsRef = useRef(opts);
   optsRef.current = opts;
 
@@ -71,6 +75,9 @@ export function useVoiceAgent(opts: Options) {
     nextPlay.current = 0;
   }, []);
 
+  // La salida de audio NO se cierra entre sesiones: se crea una sola vez dentro
+  // del clic del usuario (ensureOutput). Safari bloquea el audio de un
+  // AudioContext creado despues de un await, fuera del gesto.
   const teardown = useCallback(() => {
     flush();
     try { ws.current?.close(); } catch { /* ignorar */ }
@@ -81,10 +88,18 @@ export function useVoiceAgent(opts: Options) {
     stream.current = null;
     micCtx.current?.close().catch(() => {});
     micCtx.current = null;
-    outCtx.current?.close().catch(() => {});
-    outCtx.current = null;
     busy.current = false;
   }, [flush]);
+
+  /** Crea/reanuda la salida de audio. Llamar de forma síncrona desde el clic. */
+  const ensureOutput = useCallback(() => {
+    if (!outCtx.current || outCtx.current.state === 'closed') {
+      // Tasa nativa de la tarjeta: los buffers van a 24 kHz y el navegador
+      // los reescala. Forzar 24 kHz aqui produce chasquidos en Safari.
+      outCtx.current = new AudioContext();
+    }
+    void outCtx.current.resume();
+  }, []);
 
   /** Reproduce un chunk agendandolo en el reloj de audio, sin setTimeout. */
   const play = useCallback((b64: string) => {
@@ -112,6 +127,10 @@ export function useVoiceAgent(opts: Options) {
 
   const connect = useCallback(
     async (session: SessionOpts, rehydrate?: string) => {
+      // Se arma ANTES de abrir el socket: si falla (p. ej. idioma sin voz) el
+      // error llega al catch de quien llamó. Antes explotaba dentro de onopen y
+      // la sesión se quedaba "conectando" para siempre.
+      const payload = buildSession(session);
       const res = await fetch('/api/token');
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.token) {
@@ -126,7 +145,7 @@ export function useVoiceAgent(opts: Options) {
       setActiveLang(session.rescue ? session.nativeLang : session.targetLang);
 
       socket.onopen = () => {
-        socket.send(JSON.stringify(buildSession(session)));
+        socket.send(JSON.stringify(payload));
         if (rehydrate) {
           socket.send(JSON.stringify({
             type: 'conversation.message',
@@ -139,8 +158,12 @@ export function useVoiceAgent(opts: Options) {
       socket.onerror = () => { setError('Lost the connection to the tutor'); setState('error'); };
       // Al reconectar (rescate o cambio de idioma) se cierra el socket viejo: su
       // 'close' llega tarde y no debe dejar en 'idle' la sesion nueva.
+      // Si el socket de la sesión actual se cierra (corte de red, límite de
+      // tiempo), se apaga también el micrófono: antes quedaba grabando.
       socket.onclose = () => {
-        if (ws.current === socket) setState((s) => (s === 'error' ? s : 'idle'));
+        if (ws.current !== socket) return;
+        teardown();
+        setState((s) => (s === 'error' ? s : 'idle'));
       };
 
       socket.onmessage = (ev) => {
@@ -187,6 +210,10 @@ export function useVoiceAgent(opts: Options) {
             setState('listening');
             break;
 
+          case 'session.ended':
+            if (!stopping.current) setEnded(true);
+            break;
+
           case 'session.error':
             setError(msg.message ?? 'Session error');
             setState('error');
@@ -207,10 +234,12 @@ export function useVoiceAgent(opts: Options) {
       });
       stream.current = media;
 
-      const mic = new AudioContext({ sampleRate: RATE });
+      // Tasa nativa: Firefox no deja conectar el micrófono a un contexto con
+      // otra tasa. El worklet reduce a 24 kHz antes de mandar el audio.
+      const mic = new AudioContext();
       micCtx.current = mic;
       await mic.audioWorklet.addModule('/pcm-worklet.js');
-      const node = new AudioWorkletNode(mic, 'pcm-worklet');
+      const node = new AudioWorkletNode(mic, 'pcm-worklet', { processorOptions: { targetRate: RATE } });
       worklet.current = node;
       node.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
         if (socket.readyState === WebSocket.OPEN) {
@@ -222,13 +251,8 @@ export function useVoiceAgent(opts: Options) {
       // en algunos navegadores sin que se oiga nada.
       node.connect(mic.destination);
 
-      // Salida a la tasa nativa de la tarjeta: los buffers van a 24 kHz y el
-      // navegador los reescala. Forzar 24 kHz aqui produce chasquidos en Safari.
-      const out = new AudioContext();
-      outCtx.current = out;
-      await out.resume();
     },
-    [flush, play],
+    [flush, play, teardown],
   );
 
   const start = useCallback(async () => {
@@ -238,27 +262,43 @@ export function useVoiceAgent(opts: Options) {
       setState('error');
       return;
     }
+    ensureOutput();
     busy.current = true;
+    stopping.current = false;
     setError(null);
+    setEnded(false);
     setState('connecting');
-    history.current = [];
+
+    // En clase, si ya hubo conversación (pausa o límite de 5 min), se retoma
+    // con el contexto en vez de volver a saludar desde cero.
+    const resuming = opts.mode !== 'onboarding' && history.current.length > 0;
+    const summary = history.current.slice(-8)
+      .map((t) => `${t.role === 'tutor' ? 'Tutor' : 'Student'}: ${t.text}`)
+      .join('\n');
+    if (!resuming) history.current = [];
     try {
-      await connect({
-        mode: opts.mode,
-        known: opts.known,
-        targetLang: opts.targetLang,
-        nativeLang: opts.nativeLang,
-        level: opts.level,
-        topic: opts.topic,
-      });
+      await connect(
+        {
+          mode: opts.mode,
+          known: opts.known,
+          targetLang: opts.targetLang,
+          nativeLang: opts.nativeLang,
+          level: opts.level,
+          topic: opts.topic,
+          resume: resuming,
+        },
+        resuming ? `The lesson so far:\n${summary}\n\nContinue the lesson from here.` : undefined,
+      );
     } catch (err) {
       setError(String(err instanceof Error ? err.message : err));
       setState('error');
       teardown();
     }
-  }, [connect, opts.mode, opts.known, opts.targetLang, opts.nativeLang, opts.level, opts.topic, teardown]);
+  }, [connect, ensureOutput, opts.mode, opts.known, opts.targetLang, opts.nativeLang, opts.level, opts.topic, teardown]);
 
   const stop = useCallback(() => {
+    stopping.current = true;
+    setEnded(false);
     try { ws.current?.send(JSON.stringify({ type: 'session.end' })); } catch { /* ignorar */ }
     teardown();
     setState('idle');
@@ -277,7 +317,11 @@ export function useVoiceAgent(opts: Options) {
       .map((t) => `${t.role === 'tutor' ? 'Tutor' : 'Student'}: ${t.text}`)
       .join('\n');
 
+    ensureOutput();
+    stopping.current = true; // el cierre del socket viejo no es un "fin de sesión"
     teardown();
+    busy.current = true;
+    stopping.current = false;
     setState('connecting');
     try {
       await connect(
@@ -298,8 +342,9 @@ export function useVoiceAgent(opts: Options) {
     } catch (err) {
       setError(String(err instanceof Error ? err.message : err));
       setState('error');
+      teardown();
     }
-  }, [connect, teardown]);
+  }, [connect, ensureOutput, teardown]);
 
   /**
    * Abre una sesión nueva con otra voz/idioma y retoma la conversación.
@@ -315,6 +360,7 @@ export function useVoiceAgent(opts: Options) {
     const remainingMs = ctx ? Math.max(0, (nextPlay.current - ctx.currentTime) * 1000) : 0;
     if (remainingMs > 0) await new Promise((r) => setTimeout(r, remainingMs + 150));
 
+    ensureOutput();
     teardown();
     busy.current = true;
     setState('connecting');
@@ -330,7 +376,7 @@ export function useVoiceAgent(opts: Options) {
       setState('error');
       teardown();
     }
-  }, [connect, teardown]);
+  }, [connect, ensureOutput, teardown]);
 
   /** Cambia el prompt de la sesión en curso (es de los campos que sí se pueden cambiar). */
   const updatePrompt = useCallback((systemPrompt: string) => {
@@ -339,10 +385,29 @@ export function useVoiceAgent(opts: Options) {
     socket.send(JSON.stringify({ type: 'session.update', session: { system_prompt: systemPrompt } }));
   }, []);
 
-  useEffect(() => teardown, [teardown]);
+  /**
+   * Manda un mensaje escrito al tutor en plena sesión de voz: lo trata como un
+   * turno del alumno y le pide responder. Devuelve false si no hay sesión.
+   */
+  const sendText = useCallback((text: string, { record = true } = {}) => {
+    const socket = ws.current;
+    if (socket?.readyState !== WebSocket.OPEN) return false;
+    if (record) history.current.push({ role: 'student', text });
+    socket.send(JSON.stringify({ type: 'conversation.message', role: 'user', content: text }));
+    socket.send(JSON.stringify({ type: 'reply.create' }));
+    setState('thinking');
+    return true;
+  }, []);
+
+  useEffect(() => () => {
+    stopping.current = true;
+    teardown();
+    outCtx.current?.close().catch(() => {});
+    outCtx.current = null;
+  }, [teardown]);
 
   /** Copia de la conversacion completa, para pedir el reporte al terminar. */
   const getTranscript = useCallback(() => history.current.slice(), []);
 
-  return { state, error, activeLang, start, stop, rescue, reconnect, updatePrompt, getTranscript };
+  return { state, error, ended, activeLang, start, stop, rescue, reconnect, updatePrompt, sendText, getTranscript };
 }

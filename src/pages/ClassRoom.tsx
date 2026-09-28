@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Mic, MicOff, Loader2, Languages, Flag, Flame, Zap, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Loader2, Languages, Flag, Flame, Zap, Clock, Layers, AlertCircle } from 'lucide-react';
 import { getTutorReplies } from '../i18n/translations';
 import { useT } from '../i18n/I18nContext';
 import { useProfile } from '../ProfileContext';
 import { useProgress } from '../ProgressContext';
 import type { ChatMessage } from '../types';
 import WizardMascot from '../components/WizardMascot';
+import Flashcards from '../components/Flashcards';
 import { useVoiceAgent } from '../voice/useVoiceAgent';
 import { canSpeak } from '../voice/agentConfig';
 
@@ -44,6 +45,7 @@ export default function ClassRoom() {
   const [celebrating, setCelebrating] = useState(false);
   const [startedAt] = useState(() => Date.now());
   const [result, setResult] = useState<{ xp: number; minutes: number } | null>(null);
+  const [showCards, setShowCards] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const replyIndex = useRef(0);
   // course.id ES el id del idioma ('en', 'fr', 'de'...). El idioma nativo
@@ -56,6 +58,9 @@ export default function ClassRoom() {
     profile?.languages.find((l) => l.languageId === targetLang)?.levelCode ??
     'A2';
   const speakable = canSpeak(targetLang);
+  // "Ayuda" cambia a la voz del idioma del alumno: solo si esa voz existe
+  // (el japonés no tiene) y es distinta del idioma de la clase.
+  const canRescue = canSpeak(nativeLang) && nativeLang !== targetLang;
 
   const voice = useVoiceAgent({
     targetLang,
@@ -92,6 +97,11 @@ export default function ClassRoom() {
       { id: crypto.randomUUID(), role: 'student', text, timestamp: now() },
     ]);
     setInput('');
+
+    // Con la voz activa, lo escrito va a Sabio de verdad (antes caía en las
+    // respuestas de ejemplo aunque el tutor estuviera conectado).
+    if (voiceOn && voice.sendText(text)) return;
+
     setIsTyping(true);
 
     setTimeout(
@@ -108,6 +118,19 @@ export default function ClassRoom() {
       },
       900 + Math.random() * 600,
     );
+  };
+
+  /** Desde una flashcard: le pide a Sabio practicar esa expresión. */
+  const practiceTerm = (term: string) => {
+    const sent = voice.sendText(
+      `I want to practice the expression "${term}". Use it in a short example and ask me a question so I have to use it.`,
+      { record: false },
+    );
+    if (!sent) return;
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), role: 'student', text: t('flashcards.practiceBubble', { term }), timestamp: now() },
+    ]);
   };
 
   const finishLesson = () => {
@@ -155,6 +178,19 @@ export default function ClassRoom() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowCards((v) => !v)}
+            aria-pressed={showCards}
+            className={`flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide transition ${
+              showCards
+                ? 'border-brand-500 bg-brand-100 text-brand-700'
+                : 'border-ink-100 text-ink-500 hover:border-ink-300 hover:text-ink-900'
+            }`}
+          >
+            <Layers size={14} />
+            <span className="hidden sm:inline">{t('classRoom.flashcards')}</span>
+          </button>
         <div className="hidden items-center gap-1.5 rounded-full bg-mint-500/10 px-3 py-1 text-xs font-semibold text-mint-500 sm:flex">
           <span
             className={`h-1.5 w-1.5 rounded-full bg-mint-500 ${voiceOn ? 'animate-pulse' : ''}`}
@@ -192,6 +228,7 @@ export default function ClassRoom() {
         />
       )}
 
+      <div className="flex min-h-0 flex-1">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4">
         <div className="flex-1 overflow-y-auto py-6">
           <div className="mb-6 flex items-center justify-center">
@@ -212,6 +249,18 @@ export default function ClassRoom() {
           </div>
           <div ref={bottomRef} />
         </div>
+
+        {(voice.error || voice.ended) && (
+          <p
+            role="status"
+            className={`mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
+              voice.error ? 'bg-coral-500/10 text-coral-500' : 'bg-amber-500/10 text-ink-700'
+            }`}
+          >
+            <AlertCircle size={14} className="shrink-0" />
+            {voice.error ?? t('classRoom.sessionEnded')}
+          </p>
+        )}
 
         <form
           onSubmit={handleSubmit}
@@ -237,7 +286,7 @@ export default function ClassRoom() {
               <Mic size={18} />
             )}
           </button>
-          {voiceOn && (
+          {voiceOn && canRescue && (
             <button
               type="button"
               onClick={() => voice.rescue(voice.activeLang !== targetLang)}
@@ -265,6 +314,20 @@ export default function ClassRoom() {
             <Send size={16} />
           </button>
         </form>
+      </div>
+
+      {showCards && (
+        // Escritorio: panel a la derecha. Celular: ocupa la pantalla (encima del chat).
+        <div className="fixed inset-0 z-40 lg:static lg:z-auto lg:w-96 lg:shrink-0 lg:border-l lg:border-ink-100">
+          <Flashcards
+            languageId={targetLang}
+            topic={topic}
+            levelCode={levelCode}
+            onClose={() => setShowCards(false)}
+            onPractice={voiceOn ? practiceTerm : undefined}
+          />
+        </div>
+      )}
       </div>
     </div>
   );

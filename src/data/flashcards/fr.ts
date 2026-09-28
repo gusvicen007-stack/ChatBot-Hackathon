@@ -1,0 +1,98 @@
+import { deck } from './types';
+
+export default deck(
+  {
+    greetings: [
+      ['Enchanté(e)', 'Encantado/a', 'Nice to meet you', 'Bonjour, je suis Paul. Enchanté !', 'Con "e" final si lo dice una mujer; suena igual.', 'Add a final "e" if a woman says it; it sounds the same.'],
+      ['Ça va ?', '¿Qué tal?', "How's it going?", 'Salut Marie, ça va ?'],
+      ['À plus tard', 'Hasta luego', 'See you later', 'Je dois partir, à plus tard !'],
+      ["Je m'appelle…", 'Me llamo…', 'My name is…', "Je m'appelle Lucas."],
+      ["Tu viens d'où ?", '¿De dónde eres?', 'Where are you from?', "Tu viens d'où ? — Je viens du Mexique."],
+    ],
+    family: [
+      ['les parents', 'los padres (y también los parientes)', 'parents (also: relatives)', 'Mes parents habitent à Lyon.'],
+      ['le frère / la sœur', 'el hermano / la hermana', 'brother / sister', "J'ai une sœur et un frère."],
+      ['les grands-parents', 'los abuelos', 'grandparents', 'Mes grands-parents ont un jardin.'],
+      ['le cousin / la cousine', 'el primo / la prima', 'cousin', 'Ma cousine est très drôle.'],
+      ["s'entendre bien avec", 'llevarse bien con', 'to get along with', "Je m'entends bien avec mon frère."],
+    ],
+    food: [
+      ['Je voudrais…', 'Quisiera…', "I'd like…", "Je voudrais un café, s'il vous plaît."],
+      ["L'addition, s'il vous plaît", 'La cuenta, por favor', 'The check, please', "Monsieur, l'addition, s'il vous plaît !"],
+      ['avoir faim', 'tener hambre', 'to be hungry', "J'ai faim, on mange ?", 'Como en español se usa "avoir" (tener): avoir faim, soif, froid.', 'French uses "avoir" (to have): avoir faim, soif, froid.'],
+      ['le petit-déjeuner', 'el desayuno', 'breakfast', 'Je prends le petit-déjeuner à huit heures.'],
+      ['délicieux / délicieuse', 'delicioso/a', 'delicious', 'Ce gâteau est délicieux !'],
+    ],
+    time: [
+      ['Quelle heure est-il ?', '¿Qué hora es?', 'What time is it?', 'Quelle heure est-il ? — Il est midi.'],
+      ['et demie', 'y media', 'half past', 'Il est trois heures et demie.'],
+      ['le week-end', 'el fin de semana', 'the weekend', 'Tu fais quoi ce week-end ?'],
+      ['Il fait beau', 'Hace buen tiempo', "It's nice weather", "Il fait beau aujourd'hui !", 'El clima usa "faire": il fait froid, il fait chaud.', 'Weather uses "faire": il fait froid, il fait chaud.'],
+      ['tous les jours', 'todos los días', 'every day', 'Je marche tous les jours.'],
+    ],
+    city: [
+      ['tourner à gauche / à droite', 'girar a la izquierda / derecha', 'turn left / right', 'Tournez à gauche après la banque.'],
+      ['tout droit', 'todo recto', 'straight ahead', 'Allez tout droit.'],
+      ['à côté de', 'al lado de', 'next to', 'Le café est à côté de la gare.'],
+      ["l'arrêt de bus", 'la parada de autobús', 'bus stop', "Où est l'arrêt de bus ?"],
+      ['le centre-ville', 'el centro', 'downtown', 'On se retrouve au centre-ville.'],
+    ],
+    shopping: [
+      ['Combien ça coûte ?', '¿Cuánto cuesta?', 'How much is it?', 'Combien coûte ce pull ?'],
+      ['essayer', 'probarse', 'to try on', 'Je peux essayer cette veste ?'],
+      ['la taille', 'la talla', 'size', 'Vous avez une taille M ?'],
+      ['les soldes', 'las rebajas', 'the sales', "C'est la période des soldes !"],
+      ['le ticket de caisse', 'el ticket de compra', 'receipt', 'Voici votre ticket de caisse.'],
+    ],
+    health: [
+      ["J'ai mal à la tête", 'Me duele la cabeza', 'I have a headache', "J'ai mal à la tête depuis ce matin.", 'Para cualquier dolor: avoir mal à + parte del cuerpo.', 'For any pain: avoir mal à + body part.'],
+      ['être malade', 'estar enfermo/a', 'to be sick', 'Je suis malade, je reste à la maison.'],
+      ['un rendez-vous', 'una cita', 'an appointment', "J'ai rendez-vous chez le médecin."],
+      ['le médicament', 'el medicamento', 'medicine', 'Prenez ce médicament deux fois par jour.'],
+      ['Bon rétablissement !', '¡Que te mejores!', 'Get well soon!', 'Bon rétablissement, à bientôt !'],
+    ],
+    leisure: [
+      ['sortir', 'salir', 'to go out', 'On sort ce soir ?'],
+      ['le loisir', 'el pasatiempo', 'hobby / free-time activity', "Mon loisir préféré, c'est la lecture."],
+      ["J'adore…", 'Me encanta…', 'I love…', "J'adore les jeux vidéo."],
+      ['faire du sport', 'hacer deporte', 'to do sports', 'Je fais du sport le samedi.'],
+      ['une série', 'una serie', 'a series', 'Je regarde une série coréenne.'],
+    ],
+    travel: [
+      ["la carte d'embarquement", 'la tarjeta de embarque', 'boarding pass', "Votre carte d'embarquement, s'il vous plaît."],
+      ['les bagages', 'el equipaje', 'luggage', 'Mes bagages sont perdus.'],
+      ['réserver', 'reservar', 'to book', "J'ai réservé un hôtel près de la plage."],
+      ['un aller-retour', 'un boleto de ida y vuelta', 'a round-trip ticket', "Un aller-retour pour Paris, s'il vous plaît."],
+      ['visiter', 'visitar (un lugar)', 'to visit (a place)', 'Nous avons visité le Louvre.', 'Para personas: "rendre visite à" → je rends visite à ma tante.', 'For people use "rendre visite à": je rends visite à ma tante.'],
+    ],
+    work: [
+      ['une réunion', 'una reunión', 'a meeting', 'La réunion commence à dix heures.'],
+      ['le / la collègue', 'el / la colega', 'coworker', 'Mes collègues sont sympas.'],
+      ['postuler', 'postularse', 'to apply (for a job)', "J'ai postulé à un nouveau poste."],
+      ['la date limite', 'la fecha límite', 'deadline', 'La date limite est vendredi.'],
+      ['le travail', 'el trabajo', 'work', 'Je vais au travail en métro.'],
+    ],
+    feelings: [
+      ['Je pense que…', 'Creo que…', 'I think that…', "Je pense que c'est une bonne idée."],
+      ["Je suis d'accord", 'Estoy de acuerdo', 'I agree', "Je suis d'accord avec toi."],
+      ['content(e)', 'contento/a', 'happy, pleased', 'Je suis contente de te voir !'],
+      ['énervé(e)', 'enojado/a, irritado/a', 'annoyed', 'Il est énervé à cause du bruit.'],
+      ['Ça dépend', 'Depende', 'It depends', 'Tu aimes ça ? — Ça dépend.'],
+    ],
+    discourse: [
+      ['Cependant', 'Sin embargo', 'However', "C'est cher. Cependant, ça vaut la peine."],
+      ["D'un autre côté", 'Por otro lado', 'On the other hand', "D'un autre côté, c'est pratique."],
+      ['Donc', 'Entonces / Por lo tanto', 'So / therefore', 'Il pleut, donc je reste ici.'],
+      ['À mon avis', 'En mi opinión', 'In my opinion', 'À mon avis, il a raison.'],
+      ['Pourtant', 'Aun así / Sin embargo', 'Yet / still', 'Il est fatigué, pourtant il continue.'],
+    ],
+  },
+  [
+    ['Masculino y femenino', 'Masculine and feminine', 'Aprende cada sustantivo con su artículo: le livre, la table. El género no siempre coincide con el español.', 'Learn each noun with its article: le livre, la table.'],
+    ['Letras finales mudas', 'Silent final letters', 'La consonante final casi nunca suena: petit se dice "petí", Paris "parí".', 'Final consonants are usually silent: petit sounds like "petee".'],
+    ['La liaison', 'Liaison', 'Una consonante muda se pronuncia si la palabra siguiente empieza por vocal: les amis → "le-za-mí".', 'A silent consonant is pronounced before a vowel: les amis → "lay-za-mee".'],
+    ['Tu y vous', 'Tu and vous', '"Tu" con amigos; "vous" con desconocidos, mayores o en el trabajo (y para el plural).', '"Tu" with friends; "vous" with strangers, elders, at work, and for plural.'],
+    ['La negación ne… pas', 'Negation ne… pas', 'El verbo va en medio: je ne parle pas. Al hablar, el "ne" a menudo desaparece.', 'Wrap the verb: je ne parle pas. In speech, "ne" is often dropped.'],
+    ['Vocales nasales', 'Nasal vowels', 'an/en, on, in suenan por la nariz y sin "n" clara: pain, bon, enfant.', 'an/en, on, in are nasal, without a clear "n": pain, bon, enfant.'],
+  ],
+);
