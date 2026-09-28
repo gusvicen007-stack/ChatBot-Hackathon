@@ -186,3 +186,19 @@ body {
   background-repeat: repeat;
   background-size: 260px 260px;
 }
+
+/* Tarjetas en vivo (correcciones y vocabulario) que aparecen dentro del chat. */
+@keyframes card-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-pop {
+  animation: card-pop 0.25s ease-out;
+}

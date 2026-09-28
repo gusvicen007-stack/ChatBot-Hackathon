@@ -266,11 +266,20 @@ export function extractAnswer(text: string, known: OnboardingKnown): ProfileUpda
     const assigned = new Map<string, string>();
     const nearby = languageHits.filter((h) => pending.some((p) => p.id === h.id));
     if (nearby.length) {
-      // "intermedio en inglés y principiante en japonés": cada nivel va al idioma
-      // libre más cercano (medido de borde a borde de las palabras).
+      // "En inglés tengo nivel intermedio y en francés soy principiante": cada
+      // nivel va al idioma de SU MISMA parte de la frase (se corta en "y", ",",
+      // "pero"...). Antes se tomaba el idioma más cercano y aquí salía al revés.
+      const cuts = [...norm.matchAll(/ (y|e|and|but|pero|et|mais|und|aber) |,|;/g)].map((m) => m.index ?? 0);
+      const clauseOf = (index: number) => cuts.filter((c) => c < index).length;
+      for (const lh of levelHits) {
+        const same = nearby.filter((h) => clauseOf(h.index) === clauseOf(lh.index) && !assigned.has(h.id));
+        if (same.length === 1) assigned.set(same[0].id, lh.id);
+      }
+      // Lo que no quedó claro por partes: al idioma libre más cercano.
       const gap = (a: Hit, b: Hit) =>
         Math.max(0, a.index - (b.index + b.length), b.index - (a.index + a.length));
       for (const lh of levelHits) {
+        if ([...assigned.values()].filter((v) => v === lh.id).length) continue;
         const closest = nearby
           .filter((h) => !assigned.has(h.id))
           .sort((a, b) => gap(a, lh) - gap(b, lh))[0];

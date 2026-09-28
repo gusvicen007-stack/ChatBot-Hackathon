@@ -109,10 +109,10 @@ export interface SessionOpts {
  * pide elegir el idioma de la app (si contestan en otro idioma, se usa ese).
  */
 const CHOOSE_GREETING: Record<string, string> = {
-  en: "Hi! I'm Sabio, and I'll help you create your account. Which language would you like to use the app in? English, Spanish, French, German or Japanese?",
-  es: '¡Hola! Soy Sabio y te ayudo a crear tu cuenta. ¿En qué idioma quieres usar la app? Inglés, español, francés, alemán o japonés.',
-  fr: "Bonjour ! Je suis Sabio et je t'aide à créer ton compte. Dans quelle langue veux-tu utiliser l'appli ? Anglais, espagnol, français, allemand ou japonais ?",
-  de: 'Hallo! Ich bin Sabio und helfe dir, dein Konto zu erstellen. In welcher Sprache möchtest du die App nutzen? Englisch, Spanisch, Französisch, Deutsch oder Japanisch?',
+  en: "Hi, I'm Sabio! Which language do you want the app in? English, Spanish, French, German or Japanese?",
+  es: '¡Hola, soy Sabio! ¿En qué idioma quieres la app? Inglés, español, francés, alemán o japonés.',
+  fr: "Bonjour, je suis Sabio ! Dans quelle langue veux-tu l'appli ? Anglais, espagnol, français, allemand ou japonais ?",
+  de: 'Hallo, ich bin Sabio! In welcher Sprache möchtest du die App? Englisch, Spanisch, Französisch, Deutsch oder Japanisch?',
 };
 
 /** Frase de enlace al abrir la sesión en el idioma detectado, o al retomar tras una pausa. */
@@ -134,34 +134,34 @@ const NEXT_QUESTION: Record<string, Record<MissingField | 'done', string>> = {
   es: {
     app_language: '¿En qué idioma quieres usar la app?',
     name: '¿Cómo te llamas?',
-    interests: '¿Qué te interesa? Por ejemplo viajes, música, cine, videojuegos o comida.',
-    languages: '¿Qué idiomas quieres aprender? Tengo inglés, francés, alemán, español y japonés.',
-    levels: '¿Qué nivel tienes: principiante, básico, intermedio, intermedio alto o avanzado?',
-    done: 'Ya tengo todo. Presiona el botón verde, Comenzar mi aventura.',
+    interests: '¿Qué te interesa? Por ejemplo viajes, música o cine.',
+    languages: '¿Qué idiomas quieres aprender?',
+    levels: '¿Qué nivel tienes: principiante, intermedio o avanzado?',
+    done: 'Ya tengo todo. Presiona el botón verde.',
   },
   en: {
     app_language: 'Which language do you want to use the app in?',
     name: "What's your name?",
-    interests: 'What are you into? For example travel, music, movies, video games or food.',
-    languages: 'Which languages do you want to learn? I have English, French, German, Spanish and Japanese.',
-    levels: "What's your level: beginner, basic, intermediate, upper intermediate or advanced?",
-    done: 'I have everything. Press the green button, Start my adventure.',
+    interests: 'What are you into? For example travel, music or movies.',
+    languages: 'Which languages do you want to learn?',
+    levels: "What's your level: beginner, intermediate or advanced?",
+    done: 'I have everything. Press the green button.',
   },
   fr: {
     app_language: "Dans quelle langue veux-tu utiliser l'appli ?",
     name: "Comment tu t'appelles ?",
-    interests: "Qu'est-ce qui t'intéresse ? Par exemple les voyages, la musique, le cinéma, les jeux vidéo ou la cuisine.",
-    languages: "Quelles langues veux-tu apprendre ? J'ai l'anglais, le français, l'allemand, l'espagnol et le japonais.",
-    levels: 'Quel est ton niveau : débutant, élémentaire, intermédiaire, avancé ou expert ?',
-    done: "J'ai tout. Appuie sur le bouton vert, Commencer mon aventure.",
+    interests: "Qu'est-ce qui t'intéresse ? Par exemple les voyages, la musique ou le cinéma.",
+    languages: 'Quelles langues veux-tu apprendre ?',
+    levels: 'Quel est ton niveau : débutant, intermédiaire ou avancé ?',
+    done: "J'ai tout. Appuie sur le bouton vert.",
   },
   de: {
     app_language: 'In welcher Sprache möchtest du die App nutzen?',
     name: 'Wie heißt du?',
-    interests: 'Was interessiert dich? Zum Beispiel Reisen, Musik, Filme, Videospiele oder Essen.',
-    languages: 'Welche Sprachen möchtest du lernen? Ich habe Englisch, Französisch, Deutsch, Spanisch und Japanisch.',
-    levels: 'Wie ist dein Niveau: Anfänger, Grundkenntnisse, Mittelstufe, obere Mittelstufe oder fortgeschritten?',
-    done: 'Ich habe alles. Drück den grünen Knopf, Mein Abenteuer beginnen.',
+    interests: 'Was interessiert dich? Zum Beispiel Reisen, Musik oder Filme.',
+    languages: 'Welche Sprachen möchtest du lernen?',
+    levels: 'Wie ist dein Niveau: Anfänger, Mittelstufe oder fortgeschritten?',
+    done: 'Ich habe alles. Drück den grünen Knopf.',
   },
 };
 
@@ -205,7 +205,8 @@ export function onboardingPrompt(o: SessionOpts): string {
   const missing = missingFields(o.known ?? {});
   return [
     'You are Sabio, a friendly wizard owl who guides new users through signing up for Fluenta, a language-learning app.',
-    `Your voice speaks ${lang}. Speak ONLY ${lang}. This is spoken aloud: keep every reply under 25 words.`,
+    `Your voice speaks ${lang}. Speak ONLY ${lang}. This is spoken aloud: keep every reply under 20 words.`,
+    'Short turns matter: long replies make the user wait. Give at most 3 short examples when you ask something; NEVER read a full list of options.',
     '',
     detecting
       ? [
@@ -216,9 +217,9 @@ export function onboardingPrompt(o: SessionOpts): string {
       : '',
     'Then collect, IN THIS ORDER, asking ONE thing per turn and waiting for the answer:',
     '1. Their first name.',
-    '2. Their interests. Options: travel, business, music, film and series, video games, culture, food, sports, literature, technology. Several or none is fine.',
-    '3. Which languages they want to learn. Options: English, French, German, Spanish, Japanese. Italian is coming soon and cannot be chosen yet.',
-    '4. For EACH chosen language, their current level: beginner, basic, intermediate, upper intermediate or advanced.',
+    '2. Their interests (the app knows: travel, business, music, film, video games, culture, food, sports, literature, technology). Several or none is fine.',
+    '3. Which languages they want to learn (available: English, French, German, Spanish, Japanese; Italian is coming soon).',
+    '4. For EACH chosen language, their current level (beginner, basic, intermediate, upper intermediate or advanced). Ask one language at a time.',
     '',
     'ALREADY SAVED by the app (never ask these again):',
     describeKnown(o.known),
@@ -259,7 +260,8 @@ function tutorPrompt(o: SessionOpts): string {
     'HOW TO TEACH:',
     '- Keep every reply under 30 words. It is spoken aloud, not read.',
     '- Ask ONE question, then stop and wait. Do not stack questions.',
-    '- Do not correct every mistake. Recast: repeat their idea correctly and move on.',
+    '- When the student makes a clear mistake, correct ONLY the most important one, in one short sentence',
+    '  (for example: "We say: ..."), then continue the conversation. Never lecture; the app shows the details on screen.',
     '- If they go silent, wait. Then offer a simpler version of the question.',
     '- If they say they do not understand, rephrase more simply in ' + target + '.',
     '- Praise specifically ("good use of the past tense"), never generically.',
@@ -298,11 +300,13 @@ export function buildSession(o: SessionOpts) {
           // AssemblyAI la ajuste solo: fijarla desactiva su ritmo adaptativo y
           // hacía que cada respuesta tardara de más.
           ...(onboarding ? {} : { min_silence: pace.min, max_silence: pace.max }),
-          // En el registro no se permite interrumpir: con bocinas, el eco de la
-          // propia voz de Sabio lo cortaba al empezar y dejaba respuestas a medias.
-          interrupt_response: !onboarding,
-          // 500 ms = modo 'balanced': un "ajá" o un eco breve ya no corta al tutor.
-          interruption_delay: 500,
+          // Siempre se permite interrumpir. Sin esto (probado con audio real),
+          // si el usuario contesta mientras Sabio aún habla, AssemblyAI DESCARTA
+          // su respuesta: Sabio queda esperando y el registro se "traba".
+          interrupt_response: true,
+          // Hay que hablar 600 ms seguidos para cortar a Sabio: un "ajá" o el
+          // eco de su propia voz por las bocinas no alcanzan.
+          interruption_delay: 600,
         },
       },
       output: {

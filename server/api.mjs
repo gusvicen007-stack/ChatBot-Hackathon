@@ -9,6 +9,7 @@
  *   GET  /api/health  -> estado y consumo del dia
  *   GET  /api/token   -> token de un solo uso para el Voice Agent
  *   POST /api/report  -> retroalimentacion de la clase con el LLM Gateway
+ *   POST /api/coach   -> correcciones y flashcards en vivo durante la clase
  */
 
 const TOKEN_URL = 'https://agents.assemblyai.com/v1/token';
@@ -243,6 +244,148 @@ async function buildReport(body) {
   };
 }
 
+// ------------------------------------------------------------ coach en vivo
+//
+// Durante la clase el navegador manda las ultimas frases y aqui se piden
+// correcciones (errores del alumno) y flashcards (palabras utiles del tutor).
+//
+// Por que asi y no de otra forma (probado contra la API real):
+//  - El Voice Agent NO sirve para esto: con tools, su modelo lee en voz alta
+//    "show_correction{better:" en vez de llamarlas, y tarda ~13 s.
+//  - El plan de la cuenta solo da acceso a un modelo chico del LLM Gateway,
+//    sin response_format, con un limite de ~2 pedidos por minuto. Por eso el
+//    JSON se extrae del texto y el navegador agrupa frases y respeta el 429.
+
+const COACH_KINDS = ['grammar', 'vocabulary', 'pronunciation'];
+const CARD_KINDS = ['word', 'adjective', 'verb', 'phrase', 'grammar'];
+const NATIVE_NAME = { es: 'Spanish', en: 'English', fr: 'French', de: 'German', ja: 'Japanese', it: 'Italian' };
+
+/**
+ * Saca el primer objeto JSON de un texto. El modelo chico a veces agrega texto
+ * alrededor o deja el JSON sin cerrar (le falta la "}" final): se cierran las
+ * llaves y corchetes pendientes antes de parsear.
+ */
+function firstJsonObject(text) {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  const stack = [];
+  let inString = false;
+  let end = text.length;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') i++;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') inString = true;
+    else if (ch === '{' || ch === '[') stack.push(ch === '{' ? '}' : ']');
+    else if (ch === '}' || ch === ']') {
+      stack.pop();
+      if (stack.length === 0) { end = i + 1; break; }
+    }
+  }
+  let candidate = text.slice(start, end);
+  if (stack.length) {
+    if (inString) candidate += '"';
+    candidate = candidate.replace(/,\s*$/, '') + stack.reverse().join('');
+  }
+  try { return JSON.parse(candidate); } catch { return null; }
+}
+
+const clip = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+
+async function coach(body) {
+  const { turns, targetLang, nativeLang, level } = body ?? {};
+  if (!Array.isArray(turns) || turns.length === 0) throw new HttpError(400, 'Nothing to analyze');
+  const clean = turns
+    .slice(-12)
+    .filter((t) => t && (t.role === 'tutor' || t.role === 'student') && typeof t.text === 'string' && typeof t.id === 'string')
+    .map((t) => ({ id: t.id.slice(0, 64), role: t.role, text: t.text.slice(0, 600) }));
+  if (!clean.some((t) => t.role === 'student')) return { corrections: [], cards: [] };
+
+  const key = env('ASSEMBLYAI_API_KEY');
+  if (!key) throw new HttpError(500, 'ASSEMBLYAI_API_KEY is missing on the server');
+  const target = LANG_NAME[targetLang] ?? 'the target language';
+  const native = NATIVE_NAME[nativeLang] ?? 'English';
+  const lvl = String(level ?? 'A2').slice(0, 4);
+
+  const system = [
+    `You help a student learning ${target} (level ${lvl}). Their native language is ${native}.`,
+    'You get the latest turns of a SPOKEN lesson, transcribed by speech recognition.',
+    'Reply with ONLY one JSON object, no markdown, no other text:',
+    '{"corrections":[{"said":"","better":"","explanation":"","kind":"grammar|vocabulary|pronunciation"}],"cards":[{"term":"","meaning":"","note":"","kind":"word|adjective|verb|phrase|grammar"}]}',
+    '',
+    'corrections: real mistakes in STUDENT lines only, at most 2, most important first.',
+    '- "said": copied EXACTLY from a Student line: the smallest COMPLETE clause that contains the mistake',
+    '  (for word-order mistakes, the whole clause). "better": that same clause fully corrected in ' + target + '; it MUST differ from "said".',
+    `- "explanation": one short sentence in ${native}.`,
+    '- kind "pronunciation" only when a word looks like a mis-heard, similar-sounding version of the word the student meant.',
+    '- Ignore punctuation and capitalization. If the student made no mistakes, return "corrections": [].',
+    'cards: 1 or 2 useful items the TUTOR used (word, adjective, verb, phrase or grammar point) worth learning at this level.',
+    `- "term": copied EXACTLY from a Tutor line. "meaning" and "note" (a short usage tip) in ${native}.`,
+  ].join('\n');
+  const dialogue = clean.map((t) => `${t.role === 'tutor' ? 'Tutor' : 'Student'}: ${t.text}`).join('\n');
+
+  const res = await fetch(GATEWAY_URL, {
+    method: 'POST',
+    headers: { Authorization: key, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: env('COACH_MODEL', 'qwen3.5-4b-32k-fast'),
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: dialogue },
+      ],
+      max_tokens: 600,
+      temperature: 0,
+    }),
+  });
+  if (res.status === 429) {
+    const retry = Number(res.headers.get('retry-after')) || 30;
+    const err = new HttpError(429, 'Coach is rate limited');
+    err.retryAfter = retry;
+    throw err;
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error('[coach] error', res.status, JSON.stringify(data).slice(0, 400));
+    throw new HttpError(502, res.status === 401 ? BAD_KEY : 'The coach could not analyze this turn.');
+  }
+  const raw = data.choices?.[0]?.message?.content ?? '';
+  if (env('COACH_DEBUG')) console.log('[coach] raw', raw);
+  const out = firstJsonObject(raw) ?? {};
+
+  // Candado anti-alucinacion (igual que el reporte): una correccion solo vale
+  // si lo que "dijo" el alumno aparece en sus frases; una tarjeta, si el tutor
+  // de verdad uso ese termino. Asi tambien sabemos debajo de que mensaje va.
+  const findTurn = (role, quote) => {
+    const q = norm(quote);
+    if (!q) return null;
+    return [...clean].reverse().find((t) => t.role === role && norm(t.text).includes(q)) ?? null;
+  };
+  const corrections = (Array.isArray(out.corrections) ? out.corrections : [])
+    .map((c) => ({ c, turn: findTurn('student', c?.said) }))
+    .filter(({ c, turn }) => turn && norm(c.better) && norm(c.better) !== norm(c.said))
+    .slice(0, 2)
+    .map(({ c, turn }) => ({
+      turnId: turn.id,
+      said: clip(c.said, 200),
+      better: clip(c.better, 200),
+      explanation: clip(c.explanation, 300),
+      kind: COACH_KINDS.includes(c.kind) ? c.kind : 'grammar',
+    }));
+  const cards = (Array.isArray(out.cards) ? out.cards : [])
+    .map((c) => ({ c, turn: findTurn('tutor', c?.term) }))
+    .filter(({ c, turn }) => turn && clip(c.meaning, 1))
+    .slice(0, 2)
+    .map(({ c, turn }) => ({
+      turnId: turn.id,
+      term: clip(c.term, 80),
+      meaning: clip(c.meaning, 200),
+      note: clip(c.note, 300),
+      kind: CARD_KINDS.includes(c.kind) ? c.kind : 'word',
+    }));
+  return { corrections, cards };
+}
+
 // ------------------------------------------------------------ http
 
 function send(res, status, body) {
@@ -290,12 +433,17 @@ export async function handleApi(req, res) {
       send(res, 200, { token });
     } else if (req.method === 'POST' && pathname === '/api/report') {
       send(res, 200, await buildReport(await readJson(req)));
+    } else if (req.method === 'POST' && pathname === '/api/coach') {
+      send(res, 200, await coach(await readJson(req)));
     } else {
       send(res, 404, { error: 'Ruta no encontrada' });
     }
   } catch (err) {
     if (!err.expose) console.error('[api]', err);
-    send(res, err.status ?? 500, { error: err.expose ? err.message : 'Error interno del servidor' });
+    send(res, err.status ?? 500, {
+      error: err.expose ? err.message : 'Error interno del servidor',
+      ...(err.retryAfter ? { retryAfter: err.retryAfter } : {}),
+    });
   }
   return true;
 }

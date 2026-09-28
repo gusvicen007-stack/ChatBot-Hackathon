@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Lightbulb, MessageCircle, RotateCcw, Volume2, X } from 'lucide-react';
-import { getDeck, gloss, SPEECH_LANG, THEMES, themeForTopic, type Theme } from '../data/flashcards';
+import { getDeck, gloss, THEMES, themeForTopic, type Flashcard, type Theme } from '../data/flashcards';
+import { speak } from '../voice/speak';
+import type { LiveCard } from '../voice/liveCoach';
 import { useT } from '../i18n/I18nContext';
 
 interface Props {
@@ -10,26 +12,30 @@ interface Props {
   onClose: () => void;
   /** Si el tutor de voz está activo: le pide practicar esta expresión. */
   onPractice?: (term: string) => void;
+  /** Tarjetas que salieron en esta clase (correcciones y vocabulario del tutor). */
+  liveCards?: LiveCard[];
 }
 
-/** Lo que se lee en voz alta: sin la parte entre paréntesis (kanji) ni el "〜". */
-function speakable(text: string): string {
-  return text.replace(/（.*?）|\(.*?\)/g, '').replace(/〜/g, '').trim();
+/** Las tarjetas de la clase, en el formato del mazo para repasarlas volteándolas. */
+function toFlashcard(card: LiveCard): Flashcard {
+  if (card.kind === 'correction') {
+    const why = { es: card.explanation, en: card.explanation };
+    return { term: card.better, meaning: why, example: '', wrong: card.said };
+  }
+  return {
+    term: card.term,
+    reading: card.reading,
+    meaning: { es: card.meaning, en: card.meaning },
+    example: card.example ?? '',
+    tip: card.note ? { es: card.note, en: card.note } : undefined,
+  };
 }
 
-function speak(text: string, languageId: string) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  const utterance = new SpeechSynthesisUtterance(speakable(text));
-  utterance.lang = SPEECH_LANG[languageId] ?? languageId;
-  utterance.rate = 0.9;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-}
-
-export default function Flashcards({ languageId, topic, levelCode, onClose, onPractice }: Props) {
+export default function Flashcards({ languageId, topic, levelCode, onClose, onPractice, liveCards = [] }: Props) {
   const { t, lang } = useT();
   const deck = getDeck(languageId);
-  const [tab, setTab] = useState<'vocab' | 'tips'>('vocab');
+  const [tab, setTab] = useState<'live' | 'vocab' | 'tips'>(liveCards.length ? 'live' : 'vocab');
+  const classDeck = useMemo(() => liveCards.map(toFlashcard), [liveCards]);
   const [theme, setTheme] = useState<Theme>(() => themeForTopic(topic, levelCode));
 
   return (
@@ -51,7 +57,7 @@ export default function Flashcards({ languageId, topic, levelCode, onClose, onPr
       ) : (
         <>
           <div className="flex gap-1 border-b border-ink-100 px-4 pt-2">
-            {(['vocab', 'tips'] as const).map((id) => (
+            {(['live', 'vocab', 'tips'] as const).map((id) => (
               <button
                 key={id}
                 type="button"
@@ -61,11 +67,25 @@ export default function Flashcards({ languageId, topic, levelCode, onClose, onPr
                 }`}
               >
                 {t(`flashcards.${id}`)}
+                {id === 'live' && liveCards.length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-coral-500 px-1.5 py-0.5 text-[10px] text-white">
+                    {liveCards.length}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
-          {tab === 'vocab' ? (
+          {tab === 'live' ? (
+            classDeck.length === 0 ? (
+              <p className="p-6 text-center text-sm leading-relaxed text-ink-500">{t('flashcards.liveEmpty')}</p>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col pt-3">
+                {/* key: si llegan tarjetas nuevas, el mazo se rehace con todas */}
+                <CardDeck key={classDeck.length} cards={classDeck} languageId={languageId} uiLang={lang} onPractice={onPractice} />
+              </div>
+            )
+          ) : tab === 'vocab' ? (
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="flex gap-2 overflow-x-auto px-4 py-3">
                 {THEMES.map((id) => (
@@ -112,7 +132,7 @@ export default function Flashcards({ languageId, topic, levelCode, onClose, onPr
 }
 
 interface DeckProps {
-  cards: NonNullable<ReturnType<typeof getDeck>>['cards'][Theme];
+  cards: Flashcard[];
   languageId: string;
   uiLang: string;
   onPractice?: (term: string) => void;
@@ -185,6 +205,9 @@ function CardDeck({ cards, languageId, uiLang, onPractice }: DeckProps) {
             className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border-2 border-ink-100 bg-white p-5 text-center shadow-sm"
             style={{ backfaceVisibility: 'hidden' }}
           >
+            {current.wrong && (
+              <p className="mb-2 text-sm text-coral-500 line-through decoration-2">{current.wrong}</p>
+            )}
             <p className="text-2xl font-extrabold text-ink-950">{current.term}</p>
             {current.reading && <p className="mt-1 text-sm font-semibold text-ink-500">{current.reading}</p>}
             <p className="absolute bottom-4 text-xs text-ink-300">{t('flashcards.tapToFlip')}</p>
@@ -196,12 +219,14 @@ function CardDeck({ cards, languageId, uiLang, onPractice }: DeckProps) {
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           >
             <p className="text-center text-lg font-extrabold text-ink-950">{gloss(current.meaning, uiLang)}</p>
-            <div className="rounded-2xl bg-white p-3">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-500">
-                {t('flashcards.example')}
-              </p>
-              <p className="mt-1 text-sm italic text-ink-900">{current.example}</p>
-            </div>
+            {current.example && (
+              <div className="rounded-2xl bg-white p-3">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-ink-500">
+                  {t('flashcards.example')}
+                </p>
+                <p className="mt-1 text-sm italic text-ink-900">{current.example}</p>
+              </div>
+            )}
             {current.tip && (
               <div className="flex gap-2 rounded-2xl bg-amber-500/10 p-3 text-sm text-ink-900">
                 <Lightbulb size={16} className="mt-0.5 shrink-0 text-amber-500" />
@@ -215,7 +240,7 @@ function CardDeck({ cards, languageId, uiLang, onPractice }: DeckProps) {
       <div className="mt-3 flex justify-center gap-2">
         <button
           type="button"
-          onClick={() => speak(flipped ? current.example : current.term, languageId)}
+          onClick={() => speak(flipped && current.example ? current.example : current.term, languageId)}
           className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-ink-500 transition hover:bg-ink-50 hover:text-ink-900"
         >
           <Volume2 size={15} />

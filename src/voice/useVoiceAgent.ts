@@ -78,10 +78,15 @@ export function useVoiceAgent(opts: Options) {
   // La salida de audio NO se cierra entre sesiones: se crea una sola vez dentro
   // del clic del usuario (ensureOutput). Safari bloquea el audio de un
   // AudioContext creado despues de un await, fuera del gesto.
-  const teardown = useCallback(() => {
+  /** Cierra solo la conexión con el tutor; el micrófono sigue abierto. */
+  const closeSocket = useCallback(() => {
     flush();
     try { ws.current?.close(); } catch { /* ignorar */ }
     ws.current = null;
+  }, [flush]);
+
+  const teardown = useCallback(() => {
+    closeSocket();
     worklet.current?.disconnect();
     worklet.current = null;
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -89,7 +94,7 @@ export function useVoiceAgent(opts: Options) {
     micCtx.current?.close().catch(() => {});
     micCtx.current = null;
     busy.current = false;
-  }, [flush]);
+  }, [closeSocket]);
 
   /** Crea/reanuda la salida de audio. Llamar de forma síncrona desde el clic. */
   const ensureOutput = useCallback(() => {
@@ -222,6 +227,9 @@ export function useVoiceAgent(opts: Options) {
       };
 
       // --- microfono ---
+      // Al reconectar (cambio de idioma, "Ayuda") se reutiliza el micrófono ya
+      // abierto: pedirlo y cargar el worklet otra vez sumaba una pausa.
+      if (stream.current && worklet.current) return;
       const media = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,   // sin esto el tutor se oye a si mismo y se interrumpe
@@ -241,9 +249,11 @@ export function useVoiceAgent(opts: Options) {
       await mic.audioWorklet.addModule('/pcm-worklet.js');
       const node = new AudioWorkletNode(mic, 'pcm-worklet', { processorOptions: { targetRate: RATE } });
       worklet.current = node;
+      // Manda a la conexión vigente (cambia al reconectar sin cerrar el micrófono).
       node.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'input.audio', audio: encode(e.data) }));
+        const current = ws.current;
+        if (current?.readyState === WebSocket.OPEN) {
+          current.send(JSON.stringify({ type: 'input.audio', audio: encode(e.data) }));
         }
       };
       mic.createMediaStreamSource(media).connect(node);
@@ -319,7 +329,7 @@ export function useVoiceAgent(opts: Options) {
 
     ensureOutput();
     stopping.current = true; // el cierre del socket viejo no es un "fin de sesión"
-    teardown();
+    closeSocket();
     busy.current = true;
     stopping.current = false;
     setState('connecting');
@@ -344,7 +354,7 @@ export function useVoiceAgent(opts: Options) {
       setState('error');
       teardown();
     }
-  }, [connect, ensureOutput, teardown]);
+  }, [closeSocket, connect, ensureOutput, teardown]);
 
   /**
    * Abre una sesión nueva con otra voz/idioma y retoma la conversación.
@@ -361,7 +371,7 @@ export function useVoiceAgent(opts: Options) {
     if (remainingMs > 0) await new Promise((r) => setTimeout(r, remainingMs + 150));
 
     ensureOutput();
-    teardown();
+    closeSocket();
     busy.current = true;
     setState('connecting');
     try {
@@ -376,7 +386,7 @@ export function useVoiceAgent(opts: Options) {
       setState('error');
       teardown();
     }
-  }, [connect, ensureOutput, teardown]);
+  }, [closeSocket, connect, ensureOutput, teardown]);
 
   /** Cambia el prompt de la sesión en curso (es de los campos que sí se pueden cambiar). */
   const updatePrompt = useCallback((systemPrompt: string) => {

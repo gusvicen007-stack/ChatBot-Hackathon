@@ -8,6 +8,8 @@ import { useProgress } from '../ProgressContext';
 import type { ChatMessage } from '../types';
 import WizardMascot from '../components/WizardMascot';
 import Flashcards from '../components/Flashcards';
+import LiveCardView from '../components/LiveCard';
+import { useLiveCoach } from '../voice/liveCoach';
 import { useVoiceAgent } from '../voice/useVoiceAgent';
 import { canSpeak } from '../voice/agentConfig';
 
@@ -62,16 +64,20 @@ export default function ClassRoom() {
   // (el japonés no tiene) y es distinta del idioma de la clase.
   const canRescue = canSpeak(nativeLang) && nativeLang !== targetLang;
 
+  // Correcciones y vocabulario en vivo: aparecen como tarjetas dentro del chat.
+  const coach = useLiveCoach({ targetLang, nativeLang, level: levelCode });
+
   const voice = useVoiceAgent({
     targetLang,
     nativeLang,
     level: levelCode,
     topic,
-    onTranscript: ({ role, text }) =>
-      setMessages((prev) => [
-        ...prev,
-        { id: crypto.randomUUID(), role: role === 'tutor' ? 'tutor' : 'student', text, timestamp: now() },
-      ]),
+    onTranscript: ({ role, text }) => {
+      const id = crypto.randomUUID();
+      const who = role === 'tutor' ? 'tutor' : 'student';
+      setMessages((prev) => [...prev, { id, role: who, text, timestamp: now() }]);
+      coach.addTurn({ id, role: who, text }, lang);
+    },
   });
 
   const voiceOn = voice.state !== 'idle' && voice.state !== 'error';
@@ -85,18 +91,18 @@ export default function ClassRoom() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, coach.cards.length]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = input.trim();
     if (!text) return;
 
-    setMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: 'student', text, timestamp: now() },
-    ]);
+    const id = crypto.randomUUID();
+    setMessages((prev) => [...prev, { id, role: 'student', text, timestamp: now() }]);
     setInput('');
+    // Lo escrito también se corrige (con o sin voz).
+    coach.addTurn({ id, role: 'student', text }, lang);
 
     // Con la voz activa, lo escrito va a Sabio de verdad (antes caía en las
     // respuestas de ejemplo aunque el tutor estuviera conectado).
@@ -190,6 +196,11 @@ export default function ClassRoom() {
           >
             <Layers size={14} />
             <span className="hidden sm:inline">{t('classRoom.flashcards')}</span>
+            {coach.cards.length > 0 && (
+              <span className="rounded-full bg-coral-500 px-1.5 py-0.5 text-[10px] leading-none text-white">
+                {coach.cards.length}
+              </span>
+            )}
           </button>
         <div className="hidden items-center gap-1.5 rounded-full bg-mint-500/10 px-3 py-1 text-xs font-semibold text-mint-500 sm:flex">
           <span
@@ -239,11 +250,14 @@ export default function ClassRoom() {
 
           <div className="flex flex-col gap-4">
             {messages.map((m, i) => (
-              <ChatBubble
-                key={m.id}
-                message={m}
-                celebrate={celebrating && i === messages.length - 1}
-              />
+              <div key={m.id} className="flex flex-col gap-2">
+                <ChatBubble message={m} celebrate={celebrating && i === messages.length - 1} />
+                {coach.cards
+                  .filter((c) => c.afterId === m.id)
+                  .map((c) => (
+                    <LiveCardView key={c.id} card={c} languageId={targetLang} />
+                  ))}
+              </div>
             ))}
             {isTyping && <TypingBubble />}
           </div>
@@ -325,6 +339,7 @@ export default function ClassRoom() {
             levelCode={levelCode}
             onClose={() => setShowCards(false)}
             onPractice={voiceOn ? practiceTerm : undefined}
+            liveCards={coach.cards}
           />
         </div>
       )}

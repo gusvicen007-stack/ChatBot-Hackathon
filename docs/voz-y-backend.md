@@ -43,9 +43,10 @@ Dos ideas clave:
 | `src/voice/report.ts` | Función `requestReport()` y el tipo `LessonReport` | Lo **usas** para la pantalla de reporte |
 | `src/voice/onboarding.ts` | Registro por voz: entiende cada respuesta del usuario (idioma, nombre, intereses, idiomas, nivel) con diccionarios, sin LLM | Lo usa `VoiceSignup` |
 | `src/components/VoiceSignup.tsx` | Registro por voz: Sabio pregunta idioma de la app, nombre, intereses, idiomas y nivel | Sí, si cambias el registro |
+| `src/voice/liveCoach.ts` | Tarjetas en vivo en clase: vocabulario del tutor (diccionario local) y correcciones del alumno (`/api/coach`, respeta el límite de ~2 pedidos/min del plan) | Lo usa `ClassRoom` |
 | `src/pages/ClassRoom.tsx` | La clase. Ya tiene el micrófono y el botón "Ayuda" conectados | **Sí, es tu pantalla principal** |
 | `public/pcm-worklet.js` | Captura el micrófono en el formato que pide AssemblyAI | No. Ver reglas |
-| `server/api.mjs` | Toda la API: `/api/token`, `/api/report`, `/api/health` | No |
+| `server/api.mjs` | Toda la API: `/api/token`, `/api/report`, `/api/coach`, `/api/health` | No |
 | `server/index.mjs` | Servidor de producción: sirve el build y la API | No |
 | `vite.config.ts` | Monta la misma API dentro de `npm run dev` | No |
 | `.env.example` | Plantilla de variables. Copiarla a `.env.local` | — |

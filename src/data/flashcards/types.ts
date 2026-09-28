@@ -31,6 +31,8 @@ export interface Flashcard {
   example: string;
   /** Tip de uso o para recordarla. */
   tip?: Gloss;
+  /** Solo en correcciones de la clase: lo que dijo el alumno (mal). */
+  wrong?: string;
 }
 
 export interface LanguageTip {
