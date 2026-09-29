@@ -7,6 +7,7 @@
  */
 
 import { missingFields, type MissingField, type OnboardingKnown } from './onboarding';
+import type { Scenario } from '../data/scenarios';
 
 export const VOICE: Record<string, string | null> = {
   es: 'lola',      // acento peninsular, la unica voz en espanol
@@ -102,6 +103,8 @@ export interface SessionOpts {
   rescue?: boolean;
   /** Retoma una clase ya empezada (tras pausa o límite de tiempo): saluda distinto. */
   resume?: boolean;
+  /** Simulación: Sabio actúa un papel y el alumno cumple una misión. */
+  scenario?: Scenario | null;
 }
 
 /**
@@ -251,6 +254,8 @@ function tutorPrompt(o: SessionOpts): string {
     ].join(' ');
   }
 
+  if (o.scenario) return scenarioPrompt(o, target, native, guide);
+
   return [
     `You are a warm, patient conversation tutor. The student's native language is ${native}.`,
     `Speak ONLY ${target}. Never switch to ${native}, even if the student does.`,
@@ -269,6 +274,27 @@ function tutorPrompt(o: SessionOpts): string {
   ].filter(Boolean).join('\n');
 }
 
+/** Juego de rol: Sabio no es tutor, es el personaje de la escena. */
+function scenarioPrompt(o: SessionOpts, target: string, native: string, guide: string): string {
+  const sc = o.scenario!;
+  return [
+    `ROLE-PLAY for a language student. You are ${sc.role}. The student is ${sc.studentRole}.`,
+    `Situation: ${sc.situation}`,
+    `Speak ONLY ${target}, fully in character. Never switch to ${native}, even if the student does.`,
+    `Student level: ${o.level}. ${guide}`,
+    '',
+    "THE STUDENT'S MISSION (they must do these, not you):",
+    ...sc.goals.map((g, i) => `${i + 1}. ${g.prompt}`),
+    '',
+    'HOW TO PLAY:',
+    '- Stay in character. React like a real person in this situation would; invent realistic details (prices, times, names).',
+    '- Keep every reply under 25 words. It is spoken aloud. Ask ONE thing at a time.',
+    '- Let the student lead. Never do the mission for them; if they get stuck, give a small hint in character.',
+    '- If they make a clear mistake, repeat their idea correctly in character (for example "A large latte? Sure!") and continue.',
+    '- When the whole mission is done, close the scene naturally, then add ONE short sentence of praise.',
+  ].join('\n');
+}
+
 export function buildSession(o: SessionOpts) {
   const lang = o.rescue ? o.nativeLang : o.targetLang;
   const voice = VOICE[lang];
@@ -280,7 +306,9 @@ export function buildSession(o: SessionOpts) {
     ? onboardingGreeting(lang, o.known, Boolean(o.switched))
     : o.resume
       ? RESUME_GREETING[lang]
-      : GREETING[lang];
+      : o.scenario
+        ? (o.scenario.greeting[lang] ?? GREETING[lang])
+        : GREETING[lang];
 
   return {
     type: 'session.update',

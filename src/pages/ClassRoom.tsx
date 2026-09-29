@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Mic, MicOff, Loader2, Languages, Flag, Flame, Zap, Clock, Layers, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, Mic, MicOff, Loader2, Languages, Flag, Flame, Zap, Clock, Layers, AlertCircle, Timer, Pause, Play, Plus, Check, Target } from 'lucide-react';
 import { getTutorReplies } from '../i18n/translations';
 import { useT } from '../i18n/I18nContext';
 import { useProfile } from '../ProfileContext';
@@ -10,6 +10,10 @@ import WizardMascot from '../components/WizardMascot';
 import Flashcards from '../components/Flashcards';
 import LiveCardView from '../components/LiveCard';
 import { useLiveCoach } from '../voice/liveCoach';
+import { formatClock, useLessonTimer } from '../hooks/useLessonTimer';
+import { loadPreferredMinutes } from '../data/lessonDuration';
+import { getScenario, SCENARIO_BASE_XP, SCENARIO_GOAL_XP } from '../data/scenarios';
+import { gloss } from '../data/flashcards';
 import { useVoiceAgent } from '../voice/useVoiceAgent';
 import { canSpeak } from '../voice/agentConfig';
 
@@ -24,28 +28,37 @@ export default function ClassRoom() {
   const { courses, profile } = useProfile();
   const { t, lang } = useT();
   const course = courses.find((c) => c.id === courseId) ?? courses[0];
-  const { progress, completeLesson } = useProgress();
-  const lessonState = location.state as { topic?: string; topicId?: string; levelCode?: string } | null;
-  const topic = lessonState?.topic ?? course?.nextTopic;
-  const topicId = lessonState?.topicId ?? course?.nextTopicId ?? null;
+  const { progress, completeLesson, completePractice } = useProgress();
+  const lessonState = location.state as
+    | { topic?: string; topicId?: string; levelCode?: string; minutes?: number; scenarioId?: string }
+    | null;
+  // Simulación: Sabio actúa un papel y el alumno cumple una misión.
+  const scenario = getScenario(lessonState?.scenarioId);
+  const topic = scenario ? gloss(scenario.title, lang) : (lessonState?.topic ?? course?.nextTopic);
+  // Las simulaciones no marcan temas del mapa.
+  const topicId = scenario ? null : (lessonState?.topicId ?? course?.nextTopicId ?? null);
   const tutorReplies = getTutorReplies(lang);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       role: 'tutor',
-      text: t('classRoom.welcomeMessage', {
-        language: course?.language ?? '',
-        topic: topic ?? '',
-        languageLower: course?.language.toLowerCase() ?? '',
-      }),
+      text: scenario
+        ? t('sim.welcome', { title: gloss(scenario.title, lang), description: gloss(scenario.description, lang) })
+        : t('classRoom.welcomeMessage', {
+            language: course?.language ?? '',
+            topic: topic ?? '',
+            languageLower: course?.language.toLowerCase() ?? '',
+          }),
       timestamp: now(),
     },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
-  const [startedAt] = useState(() => Date.now());
+  // Tiempo de práctica elegido en el mapa (0 = libre). Si se entra directo, el último usado.
+  const [chosenMinutes] = useState(() => lessonState?.minutes ?? loadPreferredMinutes());
+  const timer = useLessonTimer(chosenMinutes > 0 ? chosenMinutes : null);
   const [result, setResult] = useState<{ xp: number; minutes: number } | null>(null);
   const [showCards, setShowCards] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -65,13 +78,16 @@ export default function ClassRoom() {
   const canRescue = canSpeak(nativeLang) && nativeLang !== targetLang;
 
   // Correcciones y vocabulario en vivo: aparecen como tarjetas dentro del chat.
-  const coach = useLiveCoach({ targetLang, nativeLang, level: levelCode });
+  const [goalPrompts] = useState(() => scenario?.goals.map((g) => g.prompt));
+  const coach = useLiveCoach({ targetLang, nativeLang, level: levelCode, goals: goalPrompts });
+  const missionDone = !!scenario && scenario.goals.every((_, i) => coach.goalsDone.includes(i));
 
   const voice = useVoiceAgent({
     targetLang,
     nativeLang,
     level: levelCode,
     topic,
+    scenario,
     onTranscript: ({ role, text }) => {
       const id = crypto.randomUUID();
       const who = role === 'tutor' ? 'tutor' : 'student';
@@ -81,6 +97,51 @@ export default function ClassRoom() {
   });
 
   const voiceOn = voice.state !== 'idle' && voice.state !== 'error';
+
+  // Se acabó el tiempo elegido: se cuelga la voz (no gasta créditos) y se
+  // pregunta si terminar o seguir 5 minutos más.
+  const { stop: stopVoice, start: startVoice } = voice;
+  // El reloj arranca cuando el alumno empieza a practicar (voz conectada), no al abrir la página.
+  const { start: startTimer } = timer;
+  useEffect(() => {
+    if (voice.state === 'listening' || voice.state === 'speaking') startTimer();
+  }, [voice.state, startTimer]);
+
+  /** ¿Sabio estaba hablando cuando se acabó el tiempo? Para reconectarlo con "5 minutos más". */
+  const voiceAtTimeUp = useRef(false);
+  useEffect(() => {
+    if (timer.timeUp && voiceOn) {
+      voiceAtTimeUp.current = true;
+      stopVoice();
+    }
+  }, [timer.timeUp, voiceOn, stopVoice]);
+
+  const addFiveMinutes = () => {
+    timer.addMinutes(5);
+    if (voiceAtTimeUp.current) {
+      voiceAtTimeUp.current = false;
+      void startVoice(); // desde el clic: retoma la charla donde iba
+    }
+  };
+
+  // Cada sesión de voz dura máximo 5 min (límite del servidor). En una lección
+  // con tiempo elegido, si aún queda tiempo, se reconecta sola y sigue donde iba.
+  useEffect(() => {
+    if (voice.ended && timer.limitMs !== null && timer.running) void startVoice();
+  }, [voice.ended, timer.limitMs, timer.running, startVoice]);
+
+  const togglePause = () => {
+    if (!timer.started) {
+      timer.start();
+    } else if (timer.paused) {
+      timer.resume();
+    } else {
+      timer.pause();
+      if (voiceOn) voice.stop(); // en pausa no se habla con Sabio (ni se gastan créditos)
+    }
+  };
+
+  const lastMinute = timer.remainingMs !== null && timer.remainingMs > 0 && timer.remainingMs <= 60_000;
 
   const headerState =
     voice.state === 'thinking' || isTyping
@@ -101,6 +162,7 @@ export default function ClassRoom() {
     const id = crypto.randomUUID();
     setMessages((prev) => [...prev, { id, role: 'student', text, timestamp: now() }]);
     setInput('');
+    timer.start();
     // Lo escrito también se corrige (con o sin voz).
     coach.addTurn({ id, role: 'student', text }, lang);
 
@@ -141,8 +203,12 @@ export default function ClassRoom() {
 
   const finishLesson = () => {
     if (voiceOn) voice.stop();
-    const minutes = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
-    const xp = topicId ? completeLesson({ topicId, minutes }) : 0;
+    const minutes = Math.max(1, Math.round(timer.elapsedMs / 60000));
+    const xp = scenario
+      ? completePractice({ minutes, xp: SCENARIO_BASE_XP + SCENARIO_GOAL_XP * coach.goalsDone.length })
+      : topicId
+        ? completeLesson({ topicId, minutes })
+        : 0;
     setResult({ xp, minutes });
   };
 
@@ -177,13 +243,34 @@ export default function ClassRoom() {
             <WizardMascot size={44} state={headerState} />
             <div>
               <h1 className="text-sm font-bold text-ink-950">
-                {t('classRoom.headerTitle', { language: course.language })} {course.flag}
+                {scenario
+                  ? `${scenario.emoji} ${gloss(scenario.title, lang)}`
+                  : `${t('classRoom.headerTitle', { language: course.language })} ${course.flag}`}
               </h1>
               <p className="text-xs text-ink-500">{course.level}</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={togglePause}
+            title={timer.paused ? t('timer.resume') : t('timer.pause')}
+            aria-label={`${t('timer.choose')}: ${formatClock(timer.remainingMs ?? timer.elapsedMs)}. ${
+              timer.paused ? t('timer.resume') : t('timer.pause')
+            }`}
+            className={`flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-extrabold tabular-nums transition ${
+              timer.paused
+                ? 'border-amber-500 bg-amber-500/10 text-ink-700'
+                : lastMinute
+                  ? 'border-coral-500 bg-coral-500/10 text-coral-500'
+                  : 'border-ink-100 text-ink-700 hover:border-ink-300'
+            }`}
+          >
+            {timer.paused || !timer.started ? <Play size={14} /> : <Timer size={14} />}
+            {formatClock(timer.remainingMs ?? timer.elapsedMs)}
+            {!timer.paused && <Pause size={12} className="hidden text-ink-300 sm:block" />}
+          </button>
           <button
             type="button"
             onClick={() => setShowCards((v) => !v)}
@@ -229,9 +316,26 @@ export default function ClassRoom() {
           </button>
         </div>
       </header>
+      {timer.limitMs !== null && (
+        <div className="h-1 w-full bg-ink-100">
+          <div
+            className={`h-full transition-[width] duration-300 ${lastMinute ? 'bg-coral-500' : 'bg-mint-500'}`}
+            style={{ width: `${(timer.elapsedMs / timer.limitMs) * 100}%` }}
+          />
+        </div>
+      )}
+
+      {timer.timeUp && !result && (
+        <TimeUp
+          minutes={Math.round(timer.elapsedMs / 60000)}
+          onFinish={finishLesson}
+          onMore={addFiveMinutes}
+        />
+      )}
 
       {result && (
         <LessonComplete
+          title={scenario ? t('sim.complete') : undefined}
           xp={result.xp}
           minutes={result.minutes}
           streakDays={progress.streakDays}
@@ -242,11 +346,51 @@ export default function ClassRoom() {
       <div className="flex min-h-0 flex-1">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col overflow-hidden px-4">
         <div className="flex-1 overflow-y-auto py-6">
-          <div className="mb-6 flex items-center justify-center">
-            <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-medium text-ink-500">
-              {t('classRoom.todaysTopic', { topic: topic ?? '' })}
-            </span>
-          </div>
+          {scenario ? (
+            <div className="sticky top-0 z-10 mb-6 rounded-2xl border-2 border-violet-500/30 bg-white/95 p-4 shadow-sm backdrop-blur">
+              <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-violet-500">
+                <Target size={13} />
+                {t('sim.mission')} · {coach.goalsDone.length}/{scenario.goals.length}
+              </p>
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {scenario.goals.map((goal, i) => {
+                  const done = coach.goalsDone.includes(i);
+                  return (
+                    <li key={goal.prompt}>
+                      <button
+                        type="button"
+                        onClick={() => coach.toggleGoal(i)}
+                        aria-pressed={done}
+                        className="flex w-full items-center gap-2 text-left text-sm"
+                      >
+                        <span
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                            done ? 'bg-mint-500 text-white' : 'border-2 border-ink-300'
+                          }`}
+                        >
+                          {done && <Check size={12} strokeWidth={3} />}
+                        </span>
+                        <span className={done ? 'text-ink-500 line-through' : 'font-semibold text-ink-900'}>
+                          {gloss(goal.label, lang)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {missionDone && (
+                <p className="mt-3 rounded-xl bg-mint-500/10 px-3 py-2 text-xs font-bold text-mint-500">
+                  {t('sim.missionDone')}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mb-6 flex items-center justify-center">
+              <span className="rounded-full bg-ink-100 px-3 py-1 text-xs font-medium text-ink-500">
+                {t('classRoom.todaysTopic', { topic: topic ?? '' })}
+              </span>
+            </div>
+          )}
 
           <div className="flex flex-col gap-4">
             {messages.map((m, i) => (
@@ -264,7 +408,17 @@ export default function ClassRoom() {
           <div ref={bottomRef} />
         </div>
 
-        {(voice.error || voice.ended) && (
+        {(lastMinute || timer.paused) && !voice.error && (
+          <p
+            role="status"
+            className="mb-2 flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-semibold text-ink-700"
+          >
+            <Timer size={14} className="shrink-0 text-amber-500" />
+            {timer.paused ? t('timer.pausedNotice') : t('timer.oneMinute')}
+          </p>
+        )}
+
+        {(voice.error || (voice.ended && timer.limitMs === null)) && (
           <p
             role="status"
             className={`mb-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
@@ -340,6 +494,7 @@ export default function ClassRoom() {
             onClose={() => setShowCards(false)}
             onPractice={voiceOn ? practiceTerm : undefined}
             liveCards={coach.cards}
+            theme={scenario?.theme}
           />
         </div>
       )}
@@ -385,11 +540,13 @@ function TypingBubble() {
 }
 
 function LessonComplete({
+  title,
   xp,
   minutes,
   streakDays,
   onContinue,
 }: {
+  title?: string;
   xp: number;
   minutes: number;
   streakDays: number;
@@ -400,7 +557,7 @@ function LessonComplete({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white px-6">
       <div className="flex w-full max-w-sm flex-col items-center text-center">
         <WizardMascot size={150} state="celebrate" />
-        <h2 className="mt-4 text-2xl font-extrabold text-amber-500">{t('classRoom.lessonComplete')}</h2>
+        <h2 className="mt-4 text-2xl font-extrabold text-amber-500">{title ?? t('classRoom.lessonComplete')}</h2>
 
         <div className="mt-6 grid w-full grid-cols-3 gap-3">
           <Stat color="var(--color-brand-600)" icon={<Zap size={18} fill="currentColor" />} label="XP" value={`+${xp}`} />
@@ -433,6 +590,36 @@ function Stat({ color, icon, label, value }: { color: string; icon: React.ReactN
         {icon}
         {value}
       </p>
+    </div>
+  );
+}
+
+function TimeUp({ minutes, onFinish, onMore }: { minutes: number; onFinish: () => void; onMore: () => void }) {
+  const { t } = useT();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 px-6">
+      <div role="dialog" aria-modal="true" className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl">
+        <WizardMascot size={110} state="celebrate" className="mx-auto" />
+        <h2 className="mt-2 text-xl font-extrabold text-ink-950">{t('timer.timeUp')}</h2>
+        <p className="mt-1 text-sm text-ink-500">{t('timer.practiced', { minutes: Math.max(1, minutes) })}</p>
+        <button
+          type="button"
+          onClick={onFinish}
+          style={{ ['--duo-shadow' as string]: 'color-mix(in srgb, var(--color-mint-500) 72%, black)' }}
+          className="duo-btn mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-mint-500 py-3 text-sm font-extrabold uppercase tracking-wide text-white"
+        >
+          <Flag size={15} />
+          {t('timer.finish')}
+        </button>
+        <button
+          type="button"
+          onClick={onMore}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl py-2.5 text-sm font-extrabold text-brand-600 transition hover:bg-brand-100"
+        >
+          <Plus size={15} />
+          {t('timer.more')}
+        </button>
+      </div>
     </div>
   );
 }

@@ -14,7 +14,10 @@
 
 const TOKEN_URL = 'https://agents.assemblyai.com/v1/token';
 const GATEWAY_URL = 'https://llm-gateway.assemblyai.com/v1/chat/completions';
-const SESSION_SECONDS = 300;
+// Duración máxima de cada sesión de voz. Configurable (p. ej. para probar la
+// reconexión automática con sesiones cortas); por defecto 5 min.
+// AssemblyAI exige al menos 60 s.
+const SESSION_SECONDS = Math.max(60, Number(process.env.VOICE_SESSION_SECONDS) || 300);
 const BAD_KEY = 'The AssemblyAI API key is invalid. Check ASSEMBLYAI_API_KEY in .env.local and restart the server.';
 
 // Las variables se leen en cada llamada, no al cargar el modulo: en desarrollo
@@ -27,6 +30,32 @@ class HttpError extends Error {
     super(message);
     this.status = status;
     this.expose = true; // este mensaje si se le puede mostrar al usuario
+  }
+}
+
+// ------------------------------------------------------------ red
+//
+// Llamadas a AssemblyAI con un reintento ante fallos momentaneos de red (DNS
+// que no resuelve, conexion cortada) y un limite de espera. Si aun asi falla,
+// el usuario ve "revisa tu conexion" en vez de un "error interno" generico.
+
+const NETWORK_CODES = new Set(['ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET']);
+const isNetworkError = (err) =>
+  err?.name === 'TimeoutError' || err?.name === 'AbortError' || NETWORK_CODES.has(err?.cause?.code) || err?.message === 'fetch failed';
+
+async function fetchUpstream(url, init = {}, { timeoutMs = 15_000, retries = 1 } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      const host = new URL(url).host;
+      console.warn(`[red] no se pudo contactar ${host} (${err.cause?.code ?? err.name}), intento ${attempt + 1}`);
+      if (attempt >= retries) {
+        throw new HttpError(503, 'Could not reach AssemblyAI. Check your internet connection and try again.');
+      }
+      await new Promise((r) => setTimeout(r, 700));
+    }
   }
 }
 
@@ -86,7 +115,7 @@ async function mintToken() {
 
   // OJO: el Voice Agent API EXIGE 'Bearer'. El LLM Gateway (abajo) va con
   // la key cruda. No se generaliza entre productos.
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
+  const res = await fetchUpstream(url.toString(), { headers: { Authorization: `Bearer ${key}` } }, { timeoutMs: 10_000 });
   if (!res.ok) {
     const text = await res.text();
     console.error('[token]', res.status, text);
@@ -205,7 +234,7 @@ async function buildReport(body) {
     post_processing_steps: [{ type: 'json-repair' }],
   };
 
-  const res = await fetch(GATEWAY_URL, {
+  const res = await fetchUpstream(GATEWAY_URL, {
     method: 'POST',
     headers: { Authorization: key, 'content-type': 'application/json' }, // key cruda, sin Bearer
     body: JSON.stringify(payload),
@@ -295,12 +324,17 @@ const clip = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
 
 async function coach(body) {
   const { turns, targetLang, nativeLang, level } = body ?? {};
+  // Simulación: los objetivos de la misión (en inglés), para marcar los cumplidos.
+  const goals = (Array.isArray(body?.goals) ? body.goals : [])
+    .filter((g) => typeof g === 'string')
+    .slice(0, 5)
+    .map((g) => g.slice(0, 120));
   if (!Array.isArray(turns) || turns.length === 0) throw new HttpError(400, 'Nothing to analyze');
   const clean = turns
     .slice(-12)
     .filter((t) => t && (t.role === 'tutor' || t.role === 'student') && typeof t.text === 'string' && typeof t.id === 'string')
     .map((t) => ({ id: t.id.slice(0, 64), role: t.role, text: t.text.slice(0, 600) }));
-  if (!clean.some((t) => t.role === 'student')) return { corrections: [], cards: [] };
+  if (!clean.some((t) => t.role === 'student')) return { corrections: [], cards: [], goalsDone: [] };
 
   const key = env('ASSEMBLYAI_API_KEY');
   if (!key) throw new HttpError(500, 'ASSEMBLYAI_API_KEY is missing on the server');
@@ -312,7 +346,9 @@ async function coach(body) {
     `You help a student learning ${target} (level ${lvl}). Their native language is ${native}.`,
     'You get the latest turns of a SPOKEN lesson, transcribed by speech recognition.',
     'Reply with ONLY one JSON object, no markdown, no other text:',
-    '{"corrections":[{"said":"","better":"","explanation":"","kind":"grammar|vocabulary|pronunciation"}],"cards":[{"term":"","meaning":"","note":"","kind":"word|adjective|verb|phrase|grammar"}]}',
+    goals.length
+      ? '{"goals":[{"goal":0,"done":true,"evidence":""}],"corrections":[{"said":"","better":"","explanation":"","kind":"grammar|vocabulary|pronunciation"}],"cards":[{"term":"","meaning":"","note":"","kind":"word|adjective|verb|phrase|grammar"}]}'
+      : '{"corrections":[{"said":"","better":"","explanation":"","kind":"grammar|vocabulary|pronunciation"}],"cards":[{"term":"","meaning":"","note":"","kind":"word|adjective|verb|phrase|grammar"}]}',
     '',
     'corrections: real mistakes in STUDENT lines only, at most 2, most important first.',
     '- "said": copied EXACTLY from a Student line: the smallest COMPLETE clause that contains the mistake',
@@ -322,10 +358,19 @@ async function coach(body) {
     '- Ignore punctuation and capitalization. If the student made no mistakes, return "corrections": [].',
     'cards: 1 or 2 useful items the TUTOR used (word, adjective, verb, phrase or grammar point) worth learning at this level.',
     `- "term": copied EXACTLY from a Tutor line. "meaning" and "note" (a short usage tip) in ${native}.`,
+    ...(goals.length
+      ? [
+          'This is a ROLE-PLAY. The student has this mission:',
+          ...goals.map((g, i) => `goal ${i}: ${g}`),
+          'goals: check EACH goal one by one (one entry per goal). "done" is true if ANY Student line accomplishes it,',
+          'even partly or with mistakes (e.g. "a large latte" chooses a size; "how much is it?" asks the price).',
+          '"evidence": the Student line that accomplishes it, copied exactly ("" if not done).',
+        ]
+      : []),
   ].join('\n');
   const dialogue = clean.map((t) => `${t.role === 'tutor' ? 'Tutor' : 'Student'}: ${t.text}`).join('\n');
 
-  const res = await fetch(GATEWAY_URL, {
+  const res = await fetchUpstream(GATEWAY_URL, {
     method: 'POST',
     headers: { Authorization: key, 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -383,7 +428,12 @@ async function coach(body) {
       note: clip(c.note, 300),
       kind: CARD_KINDS.includes(c.kind) ? c.kind : 'word',
     }));
-  return { corrections, cards };
+  // Un objetivo cuenta solo si la "evidencia" es algo que el alumno dijo de verdad.
+  const goalsDone = [...new Set((Array.isArray(out.goals) ? out.goals : [])
+    .filter((g) => g && g.done === true && findTurn('student', g.evidence))
+    .map((g) => Number(g.goal))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n < goals.length))];
+  return { corrections, cards, goalsDone };
 }
 
 // ------------------------------------------------------------ http

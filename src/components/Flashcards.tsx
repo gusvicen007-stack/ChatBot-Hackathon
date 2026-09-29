@@ -14,6 +14,8 @@ interface Props {
   onPractice?: (term: string) => void;
   /** Tarjetas que salieron en esta clase (correcciones y vocabulario del tutor). */
   liveCards?: LiveCard[];
+  /** Mazo inicial fijo (simulaciones); si no, se deduce del tema de la clase. */
+  theme?: Theme;
 }
 
 /** Las tarjetas de la clase, en el formato del mazo para repasarlas volteándolas. */
@@ -31,12 +33,12 @@ function toFlashcard(card: LiveCard): Flashcard {
   };
 }
 
-export default function Flashcards({ languageId, topic, levelCode, onClose, onPractice, liveCards = [] }: Props) {
+export default function Flashcards({ languageId, topic, levelCode, onClose, onPractice, liveCards = [], theme: fixedTheme }: Props) {
   const { t, lang } = useT();
   const deck = getDeck(languageId);
   const [tab, setTab] = useState<'live' | 'vocab' | 'tips'>(liveCards.length ? 'live' : 'vocab');
   const classDeck = useMemo(() => liveCards.map(toFlashcard), [liveCards]);
-  const [theme, setTheme] = useState<Theme>(() => themeForTopic(topic, levelCode));
+  const [theme, setTheme] = useState<Theme>(() => fixedTheme ?? themeForTopic(topic, levelCode));
 
   return (
     <aside className="flex h-full w-full flex-col bg-white">

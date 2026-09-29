@@ -44,6 +44,8 @@ Dos ideas clave:
 | `src/voice/onboarding.ts` | Registro por voz: entiende cada respuesta del usuario (idioma, nombre, intereses, idiomas, nivel) con diccionarios, sin LLM | Lo usa `VoiceSignup` |
 | `src/components/VoiceSignup.tsx` | Registro por voz: Sabio pregunta idioma de la app, nombre, intereses, idiomas y nivel | Sí, si cambias el registro |
 | `src/voice/liveCoach.ts` | Tarjetas en vivo en clase: vocabulario del tutor (diccionario local) y correcciones del alumno (`/api/coach`, respeta el límite de ~2 pedidos/min del plan) | Lo usa `ClassRoom` |
+| `src/data/scenarios.ts` | Simulaciones (café, restaurante, hotel, direcciones, compras, médico, entrevista, fiesta): papel de Sabio, misión y saludo por idioma | Sí, para agregar escenarios |
+| `src/hooks/useLessonTimer.ts` | Temporizador de práctica de cada lección/simulación | Lo usa `ClassRoom` |
 | `src/pages/ClassRoom.tsx` | La clase. Ya tiene el micrófono y el botón "Ayuda" conectados | **Sí, es tu pantalla principal** |
 | `public/pcm-worklet.js` | Captura el micrófono en el formato que pide AssemblyAI | No. Ver reglas |
 | `server/api.mjs` | Toda la API: `/api/token`, `/api/report`, `/api/coach`, `/api/health` | No |
@@ -253,3 +255,12 @@ En orden de lo que más pesa en el video del hackathon:
 
 - `https://tu-app.up.railway.app/api/health` muestra si la key está cargada y
   cuántas clases van hoy.
+
+
+## Límite de duración de las sesiones de voz
+
+El servidor pide cada token con `max_session_duration_seconds` (por defecto 300, configurable con
+`VOICE_SESSION_SECONDS`, mínimo 60). **En pruebas reales AssemblyAI no cerró la sesión al llegar a
+ese límite** (una sesión de 60 s seguía abierta a los 200 s). Por eso el control real del gasto en
+clase es el temporizador de la lección: al acabarse el tiempo, la app cuelga la voz. En modo
+"Libre" la sesión dura hasta que el alumno la corta o termina la clase.

@@ -91,11 +91,18 @@ export interface LessonResult {
   minutes: number;
 }
 
+export interface PracticeResult {
+  minutes: number;
+  xp: number;
+}
+
 interface ProgressContextValue {
   progress: UserProgress;
   isCompleted: (topicId: string) => boolean;
   /** Registra una clase terminada y devuelve el XP ganado. */
   completeLesson: (result: LessonResult) => number;
+  /** Registra práctica libre (simulaciones): XP, racha y minutos, sin marcar temas del mapa. */
+  completePractice: (result: PracticeResult) => number;
   /** Deja todo en cero — se usa al registrar un usuario nuevo. */
   resetProgress: () => void;
 }
@@ -112,36 +119,41 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   const isCompleted = (topicId: string) => progress.completedTopics.includes(topicId);
 
-  const completeLesson = ({ topicId, minutes }: LessonResult) => {
-    const today = new Date();
-    const current = normalize(progress, today);
-    const isReview = current.completedTopics.includes(topicId);
-    const gained = isReview ? REVIEW_XP : LESSON_XP;
-
+  /** Suma XP, minutos del día y actualiza la racha (común a lecciones y simulaciones). */
+  const record = (current: UserProgress, gained: number, minutes: number, today: Date): UserProgress => {
     const todayKey = dayKey(today);
     let streakDays = current.streakDays;
     if (current.lastActiveDate !== todayKey) {
       streakDays = current.lastActiveDate === yesterdayKey(today) ? streakDays + 1 : 1;
     }
-
     const weekMinutes = [...current.weekMinutes];
     weekMinutes[(today.getDay() + 6) % 7] += Math.max(1, Math.round(minutes));
+    return { ...current, xp: current.xp + gained, streakDays, lastActiveDate: todayKey, weekMinutes };
+  };
 
+  const completeLesson = ({ topicId, minutes }: LessonResult) => {
+    const today = new Date();
+    const current = normalize(progress, today);
+    const isReview = current.completedTopics.includes(topicId);
+    const gained = isReview ? REVIEW_XP : LESSON_XP;
+    const next = record(current, gained, minutes, today);
     update({
-      ...current,
-      xp: current.xp + gained,
-      streakDays,
-      lastActiveDate: todayKey,
-      weekMinutes,
+      ...next,
       completedTopics: isReview ? current.completedTopics : [...current.completedTopics, topicId],
     });
     return gained;
   };
 
+  const completePractice = ({ minutes, xp }: PracticeResult) => {
+    const today = new Date();
+    update(record(normalize(progress, today), xp, minutes, today));
+    return xp;
+  };
+
   const resetProgress = () => update(freshProgress());
 
   return (
-    <ProgressContext.Provider value={{ progress, isCompleted, completeLesson, resetProgress }}>
+    <ProgressContext.Provider value={{ progress, isCompleted, completeLesson, completePractice, resetProgress }}>
       {children}
     </ProgressContext.Provider>
   );

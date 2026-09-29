@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Check, Flame, Lock, Star, Trophy, Zap } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, Flame, Lock, Star, Trophy, X, Zap } from 'lucide-react';
 import { useProfile } from '../ProfileContext';
 import { LESSON_XP, REVIEW_XP, useProgress } from '../ProgressContext';
 import { getLanguage } from '../data/languages';
@@ -8,6 +8,11 @@ import { buildLearningPath, type PathNode, type PathSection } from '../data/lear
 import { getLocalizedLevels } from '../i18n/languageCatalog';
 import { useT } from '../i18n/I18nContext';
 import WizardMascot from '../components/WizardMascot';
+import { loadPreferredMinutes, savePreferredMinutes } from '../data/lessonDuration';
+import DurationPicker from '../components/DurationPicker';
+import { SCENARIOS, SCENARIO_GOAL_XP, type Scenario } from '../data/scenarios';
+import { gloss } from '../data/flashcards';
+import { canSpeak } from '../voice/agentConfig';
 
 /** Un color por sección, como los mundos de Duolingo. */
 const SECTION_COLORS = [
@@ -31,6 +36,9 @@ export default function SyllabusPicker() {
   const { t, lang } = useT();
   const course = courses.find((c) => c.id === courseId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Minutos de práctica para la próxima lección (se recuerda la última elección).
+  const [minutes, setMinutes] = useState(loadPreferredMinutes);
+  const [openScenario, setOpenScenario] = useState<Scenario | null>(null);
   const currentRef = useRef<HTMLDivElement>(null);
 
   const startLevel = profile?.languages.find((l) => l.languageId === courseId)?.levelCode;
@@ -63,8 +71,16 @@ export default function SyllabusPicker() {
   const allDone = sections.length > 0 && sections.every((s) => s.nodes.every((n) => n.status === 'completed'));
 
   const startLesson = (node: PathNode) => {
+    savePreferredMinutes(minutes);
     navigate(`/class/${courseId}`, {
-      state: { topic: node.topic.title, topicId: node.topic.id, levelCode: node.levelCode },
+      state: { topic: node.topic.title, topicId: node.topic.id, levelCode: node.levelCode, minutes },
+    });
+  };
+
+  const startScenario = (scenario: Scenario) => {
+    savePreferredMinutes(minutes);
+    navigate(`/class/${courseId}`, {
+      state: { scenarioId: scenario.id, levelCode: course.levelCode, minutes },
     });
   };
 
@@ -104,6 +120,30 @@ export default function SyllabusPicker() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 pb-24 pt-6">
+        <section className="mb-10" aria-labelledby="sim-heading">
+          <h2 id="sim-heading" className="text-base font-extrabold text-ink-950">
+            🎭 {t('sim.title')}
+          </h2>
+          <p className="mt-0.5 text-sm text-ink-500">{t('sim.subtitle')}</p>
+          <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-2">
+            {SCENARIOS.map((sc) => (
+              <button
+                key={sc.id}
+                type="button"
+                onClick={() => setOpenScenario(sc)}
+                style={{ ['--duo-shadow' as string]: 'var(--color-ink-100)' }}
+                className="duo-btn flex w-36 shrink-0 flex-col items-start rounded-2xl border-2 border-ink-100 bg-white p-3 text-left transition hover:border-violet-500/40"
+              >
+                <span className="text-3xl">{sc.emoji}</span>
+                <span className="mt-2 text-sm font-extrabold leading-tight text-ink-950">{gloss(sc.title, lang)}</span>
+                <span className="mt-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-extrabold text-violet-500">
+                  {sc.level}+
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {sections.map((section, sectionIndex) => (
           <Section
             key={section.levelCode}
@@ -113,9 +153,22 @@ export default function SyllabusPicker() {
             selectedId={selectedId}
             onSelect={(id) => setSelectedId((prev) => (prev === id ? null : id))}
             onStart={startLesson}
+            minutes={minutes}
+            onMinutes={setMinutes}
             currentRef={currentRef}
           />
         ))}
+
+        {openScenario && (
+          <ScenarioSheet
+            scenario={openScenario}
+            minutes={minutes}
+            onMinutes={setMinutes}
+            speakable={canSpeak(courseId)}
+            onStart={() => startScenario(openScenario)}
+            onClose={() => setOpenScenario(null)}
+          />
+        )}
 
         {allDone && (
           <div className="mt-10 flex flex-col items-center text-center">
@@ -135,10 +188,12 @@ interface SectionProps {
   selectedId: string | null;
   onSelect: (topicId: string) => void;
   onStart: (node: PathNode) => void;
+  minutes: number;
+  onMinutes: (minutes: number) => void;
   currentRef: React.RefObject<HTMLDivElement | null>;
 }
 
-function Section({ section, index, color, selectedId, onSelect, onStart, currentRef }: SectionProps) {
+function Section({ section, index, color, selectedId, onSelect, onStart, minutes, onMinutes, currentRef }: SectionProps) {
   const { t } = useT();
   const unlocked = section.nodes.some((n) => n.status !== 'locked');
   const bannerColor = unlocked ? color : 'var(--color-ink-300)';
@@ -168,6 +223,8 @@ function Section({ section, index, color, selectedId, onSelect, onStart, current
             selected={selectedId === node.topic.id}
             onSelect={() => onSelect(node.topic.id)}
             onStart={() => onStart(node)}
+            minutes={minutes}
+            onMinutes={onMinutes}
             nodeRef={node.status === 'current' ? currentRef : undefined}
           />
         ))}
@@ -183,10 +240,12 @@ interface LevelNodeProps {
   selected: boolean;
   onSelect: () => void;
   onStart: () => void;
+  minutes: number;
+  onMinutes: (minutes: number) => void;
   nodeRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-function LevelNode({ node, total, color, selected, onSelect, onStart, nodeRef }: LevelNodeProps) {
+function LevelNode({ node, total, color, selected, onSelect, onStart, minutes, onMinutes, nodeRef }: LevelNodeProps) {
   const { t } = useT();
   const offset = ZIGZAG[node.indexInSection % ZIGZAG.length];
   const isLast = node.indexInSection === total - 1;
@@ -268,6 +327,10 @@ function LevelNode({ node, total, color, selected, onSelect, onStart, nodeRef }:
               {t('path.locked')}
             </p>
           ) : (
+            <>
+            <div className="mt-3">
+              <DurationPicker value={minutes} onChange={onMinutes} variant="onColor" color={color} />
+            </div>
             <button
               type="button"
               onClick={onStart}
@@ -278,9 +341,89 @@ function LevelNode({ node, total, color, selected, onSelect, onStart, nodeRef }:
                 ? t('path.review', { xp: REVIEW_XP })
                 : t('path.startXp', { xp: LESSON_XP })}
             </button>
+            </>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface ScenarioSheetProps {
+  scenario: Scenario;
+  minutes: number;
+  onMinutes: (minutes: number) => void;
+  speakable: boolean;
+  onStart: () => void;
+  onClose: () => void;
+}
+
+/** Detalle de una simulación: la escena, la misión, el tiempo y empezar. */
+function ScenarioSheet({ scenario, minutes, onMinutes, speakable, onStart, onClose }: ScenarioSheetProps) {
+  const { t, lang } = useT();
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink-950/40 sm:items-center sm:px-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sim-sheet-title"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">{scenario.emoji}</span>
+            <div>
+              <h2 id="sim-sheet-title" className="text-lg font-extrabold text-ink-950">
+                {gloss(scenario.title, lang)}
+              </h2>
+              <p className="text-sm text-ink-500">{gloss(scenario.description, lang)}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('flashcards.close')}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-500 transition hover:bg-ink-50 hover:text-ink-900"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <p className="mt-5 text-[11px] font-extrabold uppercase tracking-wider text-violet-500">{t('sim.mission')}</p>
+        <ol className="mt-2 flex flex-col gap-2">
+          {scenario.goals.map((goal, i) => (
+            <li key={goal.prompt} className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-xs font-extrabold text-violet-500">
+                {i + 1}
+              </span>
+              {gloss(goal.label, lang)}
+            </li>
+          ))}
+        </ol>
+        <p className="mt-2 text-xs text-ink-500">
+          {t('sim.levelHint', { level: scenario.level })} · {t('sim.xpHint', { xp: SCENARIO_GOAL_XP })}
+        </p>
+
+        <div className="mt-5">
+          <DurationPicker value={minutes} onChange={onMinutes} />
+        </div>
+
+        {speakable ? (
+          <button
+            type="button"
+            onClick={onStart}
+            style={{ ['--duo-shadow' as string]: 'color-mix(in srgb, var(--color-violet-500) 72%, black)' }}
+            className="duo-btn mt-6 w-full rounded-2xl bg-violet-500 py-3.5 text-sm font-extrabold uppercase tracking-wide text-white"
+          >
+            {t('sim.start')}
+          </button>
+        ) : (
+          <p className="mt-6 rounded-xl bg-ink-50 px-3 py-3 text-center text-sm font-semibold text-ink-500">
+            {t('sim.noVoice')}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

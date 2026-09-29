@@ -126,18 +126,22 @@ interface CoachOptions {
   targetLang: string;
   nativeLang: string;
   level: string;
+  /** Simulación: objetivos de la misión (en inglés) para marcar los cumplidos. */
+  goals?: string[];
 }
 
 interface CoachResponse {
   corrections: { turnId: string; said: string; better: string; explanation: string; kind: CorrectionIssue }[];
   cards: { turnId: string; term: string; meaning: string; note: string; kind: VocabKind }[];
+  goalsDone?: number[];
 }
 
 /** Espera tras la última frase del alumno para juntar transcripciones partidas. */
 const DEBOUNCE_MS = 900;
 
-export function useLiveCoach({ targetLang, nativeLang, level }: CoachOptions) {
+export function useLiveCoach({ targetLang, nativeLang, level, goals }: CoachOptions) {
   const [cards, setCards] = useState<LiveCard[]>([]);
+  const [goalsDone, setGoalsDone] = useState<number[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const turns = useRef<CoachTurn[]>([]);
   /** Índice del primer turno que aún no se revisó. */
@@ -147,9 +151,9 @@ export function useLiveCoach({ targetLang, nativeLang, level }: CoachOptions) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shownTerms = useRef(new Set<string>());
   const shownCorrections = useRef(new Set<string>());
-  const opts = useRef({ targetLang, nativeLang, level });
+  const opts = useRef({ targetLang, nativeLang, level, goals });
   useEffect(() => {
-    opts.current = { targetLang, nativeLang, level };
+    opts.current = { targetLang, nativeLang, level, goals };
   });
 
   const addCards = useCallback((next: LiveCard[]) => {
@@ -202,7 +206,8 @@ export function useLiveCoach({ targetLang, nativeLang, level }: CoachOptions) {
       }
       analyzedUpTo.current = end;
       if (!res.ok) return; // un fallo aislado no debe molestar la clase
-      const { corrections = [], cards: vocab = [] } = data as CoachResponse;
+      const { corrections = [], cards: vocab = [], goalsDone: done = [] } = data as CoachResponse;
+      if (done.length) setGoalsDone((prev) => [...new Set([...prev, ...done])]);
       addCards([
         ...corrections
           .filter((c) => newIds.has(c.turnId))
@@ -255,5 +260,10 @@ export function useLiveCoach({ targetLang, nativeLang, level }: CoachOptions) {
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
-  return { cards, analyzing, addTurn };
+  /** El alumno marca (o desmarca) un objetivo a mano, por si el coach no lo detectó. */
+  const toggleGoal = useCallback((index: number) => {
+    setGoalsDone((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
+  }, []);
+
+  return { cards, analyzing, addTurn, goalsDone, toggleGoal };
 }

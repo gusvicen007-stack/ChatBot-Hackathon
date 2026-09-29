@@ -20,6 +20,7 @@ export interface VoiceTranscript {
 
 interface Options {
   mode?: SessionOpts['mode'];
+  scenario?: SessionOpts['scenario'];
   known?: OnboardingKnown;
   targetLang: string;
   nativeLang: string;
@@ -295,6 +296,7 @@ export function useVoiceAgent(opts: Options) {
           nativeLang: opts.nativeLang,
           level: opts.level,
           topic: opts.topic,
+          scenario: opts.scenario,
           resume: resuming,
         },
         resuming ? `The lesson so far:\n${summary}\n\nContinue the lesson from here.` : undefined,
@@ -304,7 +306,7 @@ export function useVoiceAgent(opts: Options) {
       setState('error');
       teardown();
     }
-  }, [connect, ensureOutput, opts.mode, opts.known, opts.targetLang, opts.nativeLang, opts.level, opts.topic, teardown]);
+  }, [connect, ensureOutput, opts.mode, opts.known, opts.targetLang, opts.nativeLang, opts.level, opts.topic, opts.scenario, teardown]);
 
   const stop = useCallback(() => {
     stopping.current = true;
@@ -342,6 +344,7 @@ export function useVoiceAgent(opts: Options) {
           nativeLang: o.nativeLang,
           level: o.level,
           topic: o.topic,
+          scenario: o.scenario,
           rescue: !back,
           greet: false,
         },
